@@ -93,3 +93,16 @@
 - 支持按时间、区域、品类、用户层级多维度下钻
 - 设置指标异常预警阈值
 - 形成可复用的运营监控模板
+
+## 六、本地数据库构建
+
+GitHub 不保存生成后的 SQLite 数据库。进入项目根目录后，可以使用原始 CSV 在本地完整重建：
+
+```bash
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+python src\data_processing\build_sqlite_database.py
+```
+
+成功后会生成 `database/brazil_ecommerce.db`。详细说明参见 [`database/README.md`](database/README.md)。

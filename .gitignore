@@ -11,3 +11,9 @@ __pycache__/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Generated SQLite databases
+database/*.db
+database/*.db-journal
+database/*.db-wal
+database/*.db-shm
