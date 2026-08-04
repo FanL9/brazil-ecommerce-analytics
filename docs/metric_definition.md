@@ -11,6 +11,8 @@
   - customer_id 在 customers 表中唯一，主要用于 orders 与 customers 的关联
   - 当前数据中有 2,997 个 customer_unique_id 对应多个 customer_id，因此连接后必须再按 customer_unique_id 进行用户级去重
 - 默认时间归属字段为：orders.order_purchase_timestamp
+- 有效支付记录定义为：order_payments.payment_value IS NOT NULL AND order_payments.payment_value > 0
+  - payment_value 等于 0 或小于 0 的记录，不属于有效支付记录，不参与 GMV 和客单价计算
 - 所有一对多关系必须先聚合到目标统计粒度，再计算指标，避免重复或放大
 
 ## 一对多关系处理原则
@@ -31,14 +33,15 @@
 GMV
 
 ### 1.2 指标定义
-在指定时间窗口内，有效订单的订单级支付金额之和，用于衡量平台成交金额规模。
+在指定时间窗口内，所有 delivered 且订单级支付金额大于 0 的订单支付金额总和，用于衡量平台成交金额规模。
 
 ### 1.3 计算公式
 GMV = SUM(order_payment_amount)
 
 其中：
-- order_payment_amount = SUM(payment_value) GROUP BY order_id
-- 仅保留 delivered 订单
+- 先筛选有效支付记录：order_payments.payment_value IS NOT NULL AND order_payments.payment_value > 0
+- 再按 order_id 聚合：order_payment_amount = SUM(order_payments.payment_value) GROUP BY order_payments.order_id
+- 仅保留 order_status = 'delivered' 且 order_payment_amount > 0 的订单
 - 最终汇总所有订单级支付金额
 
 ### 1.4 使用的数据表和字段
@@ -52,10 +55,11 @@ GMV = SUM(order_payment_amount)
 
 ### 1.5 筛选、去重和空值处理规则
 - 仅统计 orders.order_status = 'delivered' 的有效订单。
-- 先按 order_id 聚合 payment_value，得到每个订单的支付金额；禁止在未按 order_id 聚合时直接与其他明细表连接后求和。
+- 先筛选有效支付记录，再按 order_id 聚合 payment_value，得到每个订单的支付金额；禁止直接使用支付明细行数作为订单数，也禁止在未聚合支付表时与其他一对多明细表连接后计算金额。
+- order_payment_amount > 0 的订单才产生 GMV；没有有效支付记录的订单不产生 GMV；订单级支付金额为 0 的订单不产生 GMV。
 - 当前数据中 order_payments 共 103,886 条记录，2,961 个订单存在多条支付记录，单个订单最多有 29 条支付记录。
-- payment_value 无空值和负值；0 金额支付记录可以保留，但应在数据质量检查中单独识别。
-- delivered 订单中有 1 笔没有支付记录，该订单不产生 GMV。
+- 当前数据检查结果显示：order_payments 中存在 9 条 payment_value = 0 的记录；当前 delivered 订单中，订单级汇总支付金额等于 0 的订单数为 0；因此该规则主要用于固定有效支付标准并保证后续数据的一致性。
+- 订单量指标仍以全部 delivered 订单为准，不受支付情况影响。
 - 时间口径默认使用 orders.order_purchase_timestamp。
 
 ---
@@ -92,13 +96,13 @@ GMV = SUM(order_payment_amount)
 客单价
 
 ### 3.2 指标定义
-在指定时间窗口内，有效订单支付金额总和除以有至少一条有效支付记录的有效订单数。
+在指定时间窗口内，有效付费 delivered 订单的支付金额总和除以有效付费 delivered 订单数。
 
 ### 3.3 计算公式
 客单价 =
-有效订单支付金额总和
+有效付费 delivered 订单的支付金额总和
 /
-有至少一条有效支付记录的有效订单数
+有效付费 delivered 订单数
 
 ### 3.4 使用的数据表和字段
 - orders
@@ -110,13 +114,14 @@ GMV = SUM(order_payment_amount)
   - payment_value
 
 ### 3.5 筛选、去重和空值处理规则
-- 有效订单仍为 orders.order_status = 'delivered'。
-- 先按 order_id 汇总 payment_value，得到每个订单的支付金额。
-- 仅保留 delivered 且存在支付汇总记录的订单。
-- 分子为这些订单的支付金额总和；分母为这些订单的去重 order_id 数。
+- 有效付费订单必须同时满足：orders.order_status = 'delivered'、至少存在一条 payment_value > 0 的支付记录、聚合后的 order_payment_amount > 0。
+- 先筛选有效支付记录，再按 order_id 汇总 payment_value，得到每个订单的支付金额。
+- payment_value = 0 的支付记录不参与计算。
+- 订单级支付金额为 0 的订单不进入客单价分子和分母。
 - 没有支付记录的 delivered 订单不进入客单价分子和分母。
-- 订单支付金额为 0 的订单仍属于有支付记录的订单，保留在分母中。
+- 分母使用 COUNT(DISTINCT order_id)。
 - 当分母为 0 时返回 NULL，不进行除零计算。
+- 不得把客单价写成 GMV / 全部 delivered 订单量。
 - 时间口径默认使用 orders.order_purchase_timestamp。
 
 ---
