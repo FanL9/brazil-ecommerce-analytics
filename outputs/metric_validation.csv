@@ -1,0 +1,71 @@
+﻿metric_code,metric_name,validation_item,actual_value,expected_value,tolerance,status,notes
+GLOBAL,全局可执行性与数据粒度,database_file_exists,D:\Group_Brazil\brazil-ecommerce-analytics-framework\database\brazil_ecommerce.db,file exists,,PASS,
+GLOBAL,全局可执行性与数据粒度,all_metric_sections_present,"[""D01"", ""D02"", ""D03"", ""D04"", ""D05"", ""D06"", ""D07"", ""D08"", ""D09_MONTHLY"", ""D09_OVERALL""]","[""D01"", ""D02"", ""D03"", ""D04"", ""D05"", ""D06"", ""D07"", ""D08"", ""D09_MONTHLY"", ""D09_OVERALL""]",,PASS,
+GLOBAL,全局可执行性与数据粒度,required_tables_and_columns,[],[],,PASS,
+GLOBAL,全局可执行性与数据粒度,complete_sqlite_file_execution,success,success,,PASS,SQLite 完整解析并执行全部 SQL。
+D01,复购用户数与复购率,stable_output_columns,"[""purchasing_users"", ""repeat_users"", ""repeat_purchase_rate""]","[""purchasing_users"", ""repeat_users"", ""repeat_purchase_rate""]",,PASS,
+D01,复购用户数与复购率,query_returns_rows,1,>= 1,,PASS,
+D02,月度 Cohort 留存率,stable_output_columns,"[""cohort_month"", ""month_number"", ""cohort_size"", ""retained_users"", ""retention_rate""]","[""cohort_month"", ""month_number"", ""cohort_size"", ""retained_users"", ""retention_rate""]",,PASS,
+D02,月度 Cohort 留存率,query_returns_rows,278,>= 1,,PASS,
+D03,观察期历史 LTV,stable_output_columns,"[""paying_users"", ""total_customer_revenue"", ""observed_ltv""]","[""paying_users"", ""total_customer_revenue"", ""observed_ltv""]",,PASS,
+D03,观察期历史 LTV,query_returns_rows,1,>= 1,,PASS,
+D04,平均购买频次,stable_output_columns,"[""delivered_orders"", ""purchasing_users"", ""average_purchase_frequency""]","[""delivered_orders"", ""purchasing_users"", ""average_purchase_frequency""]",,PASS,
+D04,平均购买频次,query_returns_rows,1,>= 1,,PASS,
+D05,平均复购间隔,stable_output_columns,"[""repeat_users_with_valid_interval"", ""valid_repeat_intervals"", ""average_repurchase_interval_days""]","[""repeat_users_with_valid_interval"", ""valid_repeat_intervals"", ""average_repurchase_interval_days""]",,PASS,
+D05,平均复购间隔,query_returns_rows,1,>= 1,,PASS,
+D06,平均配送时长,stable_output_columns,"[""valid_delivery_orders"", ""average_delivery_days"", ""orders_over_60_days"", ""orders_over_90_days"", ""orders_over_180_days""]","[""valid_delivery_orders"", ""average_delivery_days"", ""orders_over_60_days"", ""orders_over_90_days"", ""orders_over_180_days""]",,PASS,
+D06,平均配送时长,query_returns_rows,1,>= 1,,PASS,
+D07,延迟送达率,stable_output_columns,"[""evaluable_orders"", ""delayed_orders"", ""delayed_delivery_rate""]","[""evaluable_orders"", ""delayed_orders"", ""delayed_delivery_rate""]",,PASS,
+D07,延迟送达率,query_returns_rows,1,>= 1,,PASS,
+D08,好评率,stable_output_columns,"[""reviewed_orders"", ""positive_review_orders"", ""positive_review_rate""]","[""reviewed_orders"", ""positive_review_orders"", ""positive_review_rate""]",,PASS,
+D08,好评率,query_returns_rows,1,>= 1,,PASS,
+D09_OVERALL,取消率,stable_output_columns,"[""total_orders"", ""canceled_orders"", ""cancellation_rate""]","[""total_orders"", ""canceled_orders"", ""cancellation_rate""]",,PASS,
+D09_OVERALL,取消率,query_returns_rows,1,>= 1,,PASS,
+D09_MONTHLY,取消率,stable_output_columns,"[""order_month"", ""total_orders"", ""canceled_orders"", ""cancellation_rate""]","[""order_month"", ""total_orders"", ""canceled_orders"", ""cancellation_rate""]",,PASS,
+D09_MONTHLY,取消率,query_returns_rows,25,>= 1,,PASS,
+GLOBAL,全局可执行性与数据粒度,orders_order_id_uniqueness,99441,99441,,PASS,
+GLOBAL,全局可执行性与数据粒度,customer_join_does_not_amplify_orders,99441,99441,,PASS,
+GLOBAL,全局可执行性与数据粒度,customer_join_preserves_unique_orders,99441,99441,,PASS,
+GLOBAL,全局可执行性与数据粒度,payment_aggregation_one_row_per_order,1,1,,PASS,
+GLOBAL,全局可执行性与数据粒度,review_dedup_one_row_per_order,1,1,,PASS,
+GLOBAL,全局可执行性与数据粒度,payment_amount_not_amplified,15422461.77,15422461.77,1e-06,PASS,
+GLOBAL,全局可执行性与数据粒度,all_rates_in_unit_interval_or_null,0,0,,PASS,
+D01,复购用户数与复购率,repeat_users_le_purchasing_users,True,True,,PASS,
+D02,月度 Cohort 留存率,retained_users_le_cohort_size,True,True,,PASS,
+D02,月度 Cohort 留存率,month_0_retention_equals_one,True,True,,PASS,
+D03,观察期历史 LTV,observed_ltv_nonnegative,True,True,,PASS,
+D04,平均购买频次,average_purchase_frequency_ge_one,True,True,,PASS,
+D05,平均复购间隔,repurchase_interval_nonnegative,True,True,,PASS,
+D06,平均配送时长,delivery_duration_nonnegative,True,True,,PASS,
+D07,延迟送达率,delayed_orders_le_evaluable_orders,True,True,,PASS,
+D08,好评率,positive_reviews_le_reviewed_orders,True,True,,PASS,
+D09,取消率,canceled_orders_le_total_orders,True,True,,PASS,
+D09,取消率,monthly_totals_equal_same_scope_overall,99441,99441,,PASS,
+D09,取消率,monthly_canceled_equal_same_scope_overall,625,625,,PASS,
+D07,延迟送达率,on_time_plus_delayed_equals_evaluable,96470,96470,,PASS,
+D07,延迟送达率,on_time_rate_plus_delayed_rate_equals_one,1,1,1e-06,PASS,
+D01,复购用户数与复购率,independent_formula_recalculation,0.0300027849783,0.0300027849783,1e-06,PASS,独立 SQL 回算。
+D03,观察期历史 LTV,independent_formula_recalculation,165.198772133,165.198772133,1e-06,PASS,独立 SQL 回算。
+D04,平均购买频次,independent_formula_recalculation,1.03341973907,1.03341973907,1e-06,PASS,独立 SQL 回算。
+D07,延迟送达率,independent_formula_recalculation,0.0811236653882,0.0811236653882,1e-06,PASS,独立 SQL 回算。
+D08,好评率,independent_formula_recalculation,0.789329242842,0.789329242842,1e-06,PASS,独立 SQL 回算。
+D09,取消率,independent_formula_recalculation,0.00628513389849,0.00628513389849,1e-06,PASS,独立 SQL 回算。
+D06,平均配送时长,excluded_missing_delivery_timestamps,8,0,,WARN,缺失时间订单按口径排除。
+D06,平均配送时长,excluded_negative_delivery_durations,0,0,,PASS,
+D02,月度 Cohort 留存率,right_censoring_tail,2018-08,2018-10,,WARN,Cohort 仅生成至最后 delivered 活动月，未来月份不补零。
+GLOBAL,全局可执行性与数据粒度,official_reference_dataset_fingerprint,"{""customers"": 99441, ""order_payments"": 103886, ""order_reviews"": 99224, ""orders"": 99441}",complete official Olist counts,,PASS,仅匹配完整数据指纹时执行官方参考值回归。
+D01,复购用户数与复购率,reference_purchasing_users,93358,93358,0,PASS,官方值用于回归参考；差异标 WARN，不改公式迎合。
+D01,复购用户数与复购率,reference_repeat_users,2801,2801,0,PASS,官方值用于回归参考；差异标 WARN，不改公式迎合。
+D01,复购用户数与复购率,reference_repeat_purchase_rate,0.0300027849783,0.0300027849783,1e-06,PASS,官方值用于回归参考；差异标 WARN，不改公式迎合。
+D02,月度 Cohort 留存率,reference_cohort_rows,278,278,0,PASS,官方值用于回归参考；差异标 WARN，不改公式迎合。
+D06,平均配送时长,reference_valid_delivery_orders,96470,96470,0,PASS,官方值用于回归参考；差异标 WARN，不改公式迎合。
+D06,平均配送时长,reference_average_delivery_days,12.5582170981,12.56,0.02,PASS,官方值用于回归参考；差异标 WARN，不改公式迎合。
+D07,延迟送达率,reference_evaluable_orders,96470,96470,0,PASS,官方值用于回归参考；差异标 WARN，不改公式迎合。
+D07,延迟送达率,reference_on_time_orders,88644,88644,0,PASS,官方值用于回归参考；差异标 WARN，不改公式迎合。
+D07,延迟送达率,reference_delayed_orders,7826,7826,0,PASS,官方值用于回归参考；差异标 WARN，不改公式迎合。
+D07,延迟送达率,reference_delayed_delivery_rate,0.0811236653882,0.0811,0.0001,PASS,官方值用于回归参考；差异标 WARN，不改公式迎合。
+D08,好评率,reference_reviewed_orders,95832,95832,0,PASS,官方值用于回归参考；差异标 WARN，不改公式迎合。
+D08,好评率,reference_positive_review_orders,75643,75643,0,PASS,官方值用于回归参考；差异标 WARN，不改公式迎合。
+D08,好评率,reference_positive_review_rate,0.789329242842,0.7893,0.0001,PASS,官方值用于回归参考；差异标 WARN，不改公式迎合。
+D09,取消率,reference_total_orders,99441,99441,0,PASS,官方值用于回归参考；差异标 WARN，不改公式迎合。
+D09,取消率,reference_canceled_orders,625,625,0,PASS,官方值用于回归参考；差异标 WARN，不改公式迎合。
