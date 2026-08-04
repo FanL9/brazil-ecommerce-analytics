@@ -106,3 +106,13 @@ python src\data_processing\build_sqlite_database.py
 ```
 
 成功后会生成 `database/brazil_ecommerce.db`。详细说明参见 [`database/README.md`](database/README.md)。
+
+## 七、创建清洗视图
+
+数据库构建完成后，需执行一次清洗 SQL，才能在 DBeaver 或其他 SQLite 工具中使用 `vw_*` 清洗视图：
+
+```powershell
+python -c "from pathlib import Path; import sqlite3; c=sqlite3.connect(r'database/brazil_ecommerce.db'); c.executescript(Path(r'sql/02_data_cleaning/data_cleaning_rules.sql').read_text(encoding='utf-8-sig')); c.close()"
+```
+
+该脚本可重复执行，不会修改或删除原始表数据。

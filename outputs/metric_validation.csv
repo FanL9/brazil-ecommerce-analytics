@@ -1,71 +1,57 @@
-﻿metric_code,metric_name,validation_item,actual_value,expected_value,tolerance,status,notes
-GLOBAL,全局可执行性与数据粒度,database_file_exists,D:\Group_Brazil\brazil-ecommerce-analytics-framework\database\brazil_ecommerce.db,file exists,,PASS,
-GLOBAL,全局可执行性与数据粒度,all_metric_sections_present,"[""D01"", ""D02"", ""D03"", ""D04"", ""D05"", ""D06"", ""D07"", ""D08"", ""D09_MONTHLY"", ""D09_OVERALL""]","[""D01"", ""D02"", ""D03"", ""D04"", ""D05"", ""D06"", ""D07"", ""D08"", ""D09_MONTHLY"", ""D09_OVERALL""]",,PASS,
-GLOBAL,全局可执行性与数据粒度,required_tables_and_columns,[],[],,PASS,
-GLOBAL,全局可执行性与数据粒度,complete_sqlite_file_execution,success,success,,PASS,SQLite 完整解析并执行全部 SQL。
-D01,复购用户数与复购率,stable_output_columns,"[""purchasing_users"", ""repeat_users"", ""repeat_purchase_rate""]","[""purchasing_users"", ""repeat_users"", ""repeat_purchase_rate""]",,PASS,
-D01,复购用户数与复购率,query_returns_rows,1,>= 1,,PASS,
-D02,月度 Cohort 留存率,stable_output_columns,"[""cohort_month"", ""month_number"", ""cohort_size"", ""retained_users"", ""retention_rate""]","[""cohort_month"", ""month_number"", ""cohort_size"", ""retained_users"", ""retention_rate""]",,PASS,
-D02,月度 Cohort 留存率,query_returns_rows,278,>= 1,,PASS,
-D03,观察期历史 LTV,stable_output_columns,"[""paying_users"", ""total_customer_revenue"", ""observed_ltv""]","[""paying_users"", ""total_customer_revenue"", ""observed_ltv""]",,PASS,
-D03,观察期历史 LTV,query_returns_rows,1,>= 1,,PASS,
-D04,平均购买频次,stable_output_columns,"[""delivered_orders"", ""purchasing_users"", ""average_purchase_frequency""]","[""delivered_orders"", ""purchasing_users"", ""average_purchase_frequency""]",,PASS,
-D04,平均购买频次,query_returns_rows,1,>= 1,,PASS,
-D05,平均复购间隔,stable_output_columns,"[""repeat_users_with_valid_interval"", ""valid_repeat_intervals"", ""average_repurchase_interval_days""]","[""repeat_users_with_valid_interval"", ""valid_repeat_intervals"", ""average_repurchase_interval_days""]",,PASS,
-D05,平均复购间隔,query_returns_rows,1,>= 1,,PASS,
-D06,平均配送时长,stable_output_columns,"[""valid_delivery_orders"", ""average_delivery_days"", ""orders_over_60_days"", ""orders_over_90_days"", ""orders_over_180_days""]","[""valid_delivery_orders"", ""average_delivery_days"", ""orders_over_60_days"", ""orders_over_90_days"", ""orders_over_180_days""]",,PASS,
-D06,平均配送时长,query_returns_rows,1,>= 1,,PASS,
-D07,延迟送达率,stable_output_columns,"[""evaluable_orders"", ""delayed_orders"", ""delayed_delivery_rate""]","[""evaluable_orders"", ""delayed_orders"", ""delayed_delivery_rate""]",,PASS,
-D07,延迟送达率,query_returns_rows,1,>= 1,,PASS,
-D08,好评率,stable_output_columns,"[""reviewed_orders"", ""positive_review_orders"", ""positive_review_rate""]","[""reviewed_orders"", ""positive_review_orders"", ""positive_review_rate""]",,PASS,
-D08,好评率,query_returns_rows,1,>= 1,,PASS,
-D09_OVERALL,取消率,stable_output_columns,"[""total_orders"", ""canceled_orders"", ""cancellation_rate""]","[""total_orders"", ""canceled_orders"", ""cancellation_rate""]",,PASS,
-D09_OVERALL,取消率,query_returns_rows,1,>= 1,,PASS,
-D09_MONTHLY,取消率,stable_output_columns,"[""order_month"", ""total_orders"", ""canceled_orders"", ""cancellation_rate""]","[""order_month"", ""total_orders"", ""canceled_orders"", ""cancellation_rate""]",,PASS,
-D09_MONTHLY,取消率,query_returns_rows,25,>= 1,,PASS,
-GLOBAL,全局可执行性与数据粒度,orders_order_id_uniqueness,99441,99441,,PASS,
-GLOBAL,全局可执行性与数据粒度,customer_join_does_not_amplify_orders,99441,99441,,PASS,
-GLOBAL,全局可执行性与数据粒度,customer_join_preserves_unique_orders,99441,99441,,PASS,
-GLOBAL,全局可执行性与数据粒度,payment_aggregation_one_row_per_order,1,1,,PASS,
-GLOBAL,全局可执行性与数据粒度,review_dedup_one_row_per_order,1,1,,PASS,
-GLOBAL,全局可执行性与数据粒度,payment_amount_not_amplified,15422461.77,15422461.77,1e-06,PASS,
-GLOBAL,全局可执行性与数据粒度,all_rates_in_unit_interval_or_null,0,0,,PASS,
-D01,复购用户数与复购率,repeat_users_le_purchasing_users,True,True,,PASS,
-D02,月度 Cohort 留存率,retained_users_le_cohort_size,True,True,,PASS,
-D02,月度 Cohort 留存率,month_0_retention_equals_one,True,True,,PASS,
-D03,观察期历史 LTV,observed_ltv_nonnegative,True,True,,PASS,
-D04,平均购买频次,average_purchase_frequency_ge_one,True,True,,PASS,
-D05,平均复购间隔,repurchase_interval_nonnegative,True,True,,PASS,
-D06,平均配送时长,delivery_duration_nonnegative,True,True,,PASS,
-D07,延迟送达率,delayed_orders_le_evaluable_orders,True,True,,PASS,
-D08,好评率,positive_reviews_le_reviewed_orders,True,True,,PASS,
-D09,取消率,canceled_orders_le_total_orders,True,True,,PASS,
-D09,取消率,monthly_totals_equal_same_scope_overall,99441,99441,,PASS,
-D09,取消率,monthly_canceled_equal_same_scope_overall,625,625,,PASS,
-D07,延迟送达率,on_time_plus_delayed_equals_evaluable,96470,96470,,PASS,
-D07,延迟送达率,on_time_rate_plus_delayed_rate_equals_one,1,1,1e-06,PASS,
-D01,复购用户数与复购率,independent_formula_recalculation,0.0300027849783,0.0300027849783,1e-06,PASS,独立 SQL 回算。
-D03,观察期历史 LTV,independent_formula_recalculation,165.198772133,165.198772133,1e-06,PASS,独立 SQL 回算。
-D04,平均购买频次,independent_formula_recalculation,1.03341973907,1.03341973907,1e-06,PASS,独立 SQL 回算。
-D07,延迟送达率,independent_formula_recalculation,0.0811236653882,0.0811236653882,1e-06,PASS,独立 SQL 回算。
-D08,好评率,independent_formula_recalculation,0.789329242842,0.789329242842,1e-06,PASS,独立 SQL 回算。
-D09,取消率,independent_formula_recalculation,0.00628513389849,0.00628513389849,1e-06,PASS,独立 SQL 回算。
-D06,平均配送时长,excluded_missing_delivery_timestamps,8,0,,WARN,缺失时间订单按口径排除。
-D06,平均配送时长,excluded_negative_delivery_durations,0,0,,PASS,
-D02,月度 Cohort 留存率,right_censoring_tail,2018-08,2018-10,,WARN,Cohort 仅生成至最后 delivered 活动月，未来月份不补零。
-GLOBAL,全局可执行性与数据粒度,official_reference_dataset_fingerprint,"{""customers"": 99441, ""order_payments"": 103886, ""order_reviews"": 99224, ""orders"": 99441}",complete official Olist counts,,PASS,仅匹配完整数据指纹时执行官方参考值回归。
-D01,复购用户数与复购率,reference_purchasing_users,93358,93358,0,PASS,官方值用于回归参考；差异标 WARN，不改公式迎合。
-D01,复购用户数与复购率,reference_repeat_users,2801,2801,0,PASS,官方值用于回归参考；差异标 WARN，不改公式迎合。
-D01,复购用户数与复购率,reference_repeat_purchase_rate,0.0300027849783,0.0300027849783,1e-06,PASS,官方值用于回归参考；差异标 WARN，不改公式迎合。
-D02,月度 Cohort 留存率,reference_cohort_rows,278,278,0,PASS,官方值用于回归参考；差异标 WARN，不改公式迎合。
-D06,平均配送时长,reference_valid_delivery_orders,96470,96470,0,PASS,官方值用于回归参考；差异标 WARN，不改公式迎合。
-D06,平均配送时长,reference_average_delivery_days,12.5582170981,12.56,0.02,PASS,官方值用于回归参考；差异标 WARN，不改公式迎合。
-D07,延迟送达率,reference_evaluable_orders,96470,96470,0,PASS,官方值用于回归参考；差异标 WARN，不改公式迎合。
-D07,延迟送达率,reference_on_time_orders,88644,88644,0,PASS,官方值用于回归参考；差异标 WARN，不改公式迎合。
-D07,延迟送达率,reference_delayed_orders,7826,7826,0,PASS,官方值用于回归参考；差异标 WARN，不改公式迎合。
-D07,延迟送达率,reference_delayed_delivery_rate,0.0811236653882,0.0811,0.0001,PASS,官方值用于回归参考；差异标 WARN，不改公式迎合。
-D08,好评率,reference_reviewed_orders,95832,95832,0,PASS,官方值用于回归参考；差异标 WARN，不改公式迎合。
-D08,好评率,reference_positive_review_orders,75643,75643,0,PASS,官方值用于回归参考；差异标 WARN，不改公式迎合。
-D08,好评率,reference_positive_review_rate,0.789329242842,0.7893,0.0001,PASS,官方值用于回归参考；差异标 WARN，不改公式迎合。
-D09,取消率,reference_total_orders,99441,99441,0,PASS,官方值用于回归参考；差异标 WARN，不改公式迎合。
-D09,取消率,reference_canceled_orders,625,625,0,PASS,官方值用于回归参考；差异标 WARN，不改公式迎合。
+metric_code,metric_name,validation_item,actual_value,expected_value,tolerance,status,notes
+GLOBAL,指标集,metric_definition_unchanged,53E39DA6DF8C0FC69D6B55849B93996B0EDAFB408BFFB8C381FF3DFCFA6B3E33,53E39DA6DF8C0FC69D6B55849B93996B0EDAFB408BFFB8C381FF3DFCFA6B3E33,,PASS,只读使用未修改
+GLOBAL,指标集,metric_dictionary_unchanged,4F4B62CC6ECA33E1D8A7AFBAF5290394AF9B8351F3E6BE751447368153E16CE6,4F4B62CC6ECA33E1D8A7AFBAF5290394AF9B8351F3E6BE751447368153E16CE6,,PASS,只读使用未修改
+GLOBAL,指标集,dictionary_filename,docs/metric_dictionary.csv,docs/metric_dictionary.csv,,PASS,文件名已统一且内容只读未修改
+GLOBAL,指标集,clean_views_available,7,7,,PASS,指标运行前已执行sql/02_data_cleaning/data_cleaning_rules.sql
+GLOBAL,指标集,core_metric_sections,8,8,,PASS,M01 M02 M04 M05 M06 M07 M13 M15
+GLOBAL,指标集,derived_query_sections,11,11,,PASS,10项衍生指标中M17含总体和月度两个结果集
+GLOBAL,指标集,core_sql_execution,success,success,,PASS,SQLite完整执行
+GLOBAL,指标集,derived_sql_execution,success,success,,PASS,SQLite完整执行
+GLOBAL,指标集,review_order_level_duplicates,0,0,,PASS,订单级评论每单最多一行
+GLOBAL,指标集,clean_payment_business_key_duplicates,0,0,,PASS,order_id加payment_sequential唯一
+GLOBAL,指标集,integrity_check,ok,ok,,PASS,PRAGMA integrity_check
+M01,GMV,cleaned_gmv,15422461.77,15422461.77,0.01,PASS,与M03支付收入和M10客户收入一致
+M02,有效订单量,valid_order_count,96478,96478,0,PASS,与M11分子一致
+M03,客单价,paid_order_count,96477,96477,0,PASS,分母仅含有正支付的delivered订单
+M03,客单价,paid_order_revenue,15422461.77,15422461.77,0.01,PASS,与M01一致
+M03,客单价,average_order_value,159.856357163,159.856357163,1e-06,PASS,收入除以支付订单量独立回算
+M04,支付订单量,paid_order_count,96477,96477,0,PASS,支付先按order_id聚合
+M05,活跃用户数,active_customer_count,93358,93358,0,PASS,使用customer_unique_id去重
+M06,新增用户数,first_purchase_month_rows,23,23,0,PASS,首购基于完整delivered历史并按YYYY-MM输出
+M07,复购用户数,repeat_customer_count,2801,2801,0,PASS,至少2笔去重delivered订单
+M08,复购率,active_customer_count,93358,93358,0,PASS,与M05一致
+M08,复购率,repeat_customer_count,2801,2801,0,PASS,与M07一致
+M08,复购率,repeat_purchase_rate,0.0300027849783,0.0300027849783,1e-06,PASS,2801除以93358
+M09,用户留存率,cohort_result_rows,278,278,0,PASS,包含已观察的零留存月份
+M09,用户留存率,month_0_all_equal_one,True,True,,PASS,所有cohort的Month0为100%
+M09,用户留存率,retained_le_cohort_size,True,True,,PASS,留存用户不超过cohort人数
+M09,用户留存率,right_censoring_tail,2018-08,2018-10,,WARN,最后delivered活动月早于全部订单尾月未来月份不补零
+M10,用户生命周期价值,paying_customer_count,93357,93357,0,PASS,仅含有正支付的delivered用户
+M10,用户生命周期价值,total_customer_revenue,15422461.77,15422461.77,0.01,PASS,与M01一致
+M10,用户生命周期价值,customer_lifetime_value,165.198772133,165.198772133,1e-06,PASS,观察期客户收入平均值
+M11,平均购买频次,valid_order_count,96478,96478,0,PASS,与M02一致
+M11,平均购买频次,active_customer_count,93358,93358,0,PASS,与M05一致
+M11,平均购买频次,average_purchase_frequency,1.03341973907,1.03341973907,1e-06,PASS,96478除以93358
+M12,平均复购间隔,repeat_customer_count,2801,2801,0,PASS,有合法相邻间隔的用户数
+M12,平均复购间隔,valid_interval_count,3120,3120,0,PASS,所有相邻订单间隔等权
+M12,平均复购间隔,average_repurchase_interval_days,79.1502680734,79.1502680734,1e-06,PASS,按字典改为相邻区间等权而非用户等权
+M13,平均配送时长,valid_delivery_order_count,96470,96470,0,PASS,只排除端点时间缺失不可解析或签收早于下单
+M13,平均配送时长,average_delivery_days,12.5582170981,12.5582170981,1e-06,PASS,基于vw_delivery_analysis_clean且保留中间时序异常
+M13,平均配送时长,flagged_delivery_long_tail,4896,4896,0,PASS,delivered合法长尾仍保留且可识别
+M13,平均配送时长,retained_intermediate_chronology_errors,1373,1373,0,PASS,保留并由has_intermediate_chronology_error标记
+M14,延迟配送率,evaluable_order_count,96470,96470,0,PASS,与M13使用相同有效配送订单范围
+M14,延迟配送率,late_order_count,7826,7826,0,PASS,实际签收晚于预计时间
+M14,延迟配送率,late_delivery_rate,0.0811236653882,0.0811236653882,1e-06,PASS,7826除以96470
+M15,平均评论分数,reviewed_order_count,95832,95832,0,PASS,订单级代表评论
+M15,平均评论分数,average_review_score,4.15590825611,4.15590825611,1e-06,PASS,结果处于1至5
+M16,好评率,reviewed_order_count,95832,95832,0,PASS,与M15分母一致
+M16,好评率,positive_review_order_count,75643,75643,0,PASS,评分大于等于4
+M16,好评率,positive_review_rate,0.789329242842,0.789329242842,1e-06,PASS,75643除以95832
+M17,取消率,total_order_count,99441,99441,0,PASS,总体分母包含全部状态
+M17,取消率,canceled_order_count,625,625,0,PASS,状态值使用canceled
+M17,取消率,cancellation_rate,0.00628513389849,0.00628513389849,1e-06,PASS,625除以99441
+M17,取消率,monthly_total_matches_overall,99441,99441,0,PASS,25个月汇总与总体一致
+M17,取消率,monthly_canceled_matches_overall,625,625,0,PASS,月度取消汇总与总体一致
+M18,品类销售占比,category_rows,74,74,0,PASS,空品类统一为unknown并保留
+M18,品类销售占比,total_category_sales,13221498.11,13221498.11,0.01,PASS,仅使用清洗商品price不含运费
+M18,品类销售占比,category_share_sum,1,1,1e-06,PASS,所有品类占比之和为1
