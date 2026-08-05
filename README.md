@@ -106,3 +106,67 @@ python src\data_processing\build_sqlite_database.py
 ```
 
 成功后会生成 `database/brazil_ecommerce.db`。详细说明参见 [`database/README.md`](database/README.md)。
+
+## 七、创建清洗视图
+
+数据库构建完成后，需执行一次清洗 SQL，才能在 DBeaver 或其他 SQLite 工具中使用 `vw_*` 清洗视图：
+
+```powershell
+python -c "from pathlib import Path; import sqlite3; c=sqlite3.connect(r'database/brazil_ecommerce.db'); c.executescript(Path(r'sql/02_data_cleaning/data_cleaning_rules.sql').read_text(encoding='utf-8-sig')); c.close()"
+```
+
+该脚本可重复执行，不会修改或删除原始表数据。
+
+## 八、创建月度 KPI 公共数据层
+
+完成数据库构建和清洗 View 创建后，执行月度公共数据层 SQL：
+
+```powershell
+python -c "from pathlib import Path; import sqlite3; c=sqlite3.connect(r'database/brazil_ecommerce.db'); c.executescript(Path(r'sql/02_business_overview/00_monthly_kpi_view.sql').read_text(encoding='utf-8-sig')); c.close()"
+```
+
+该 SQL 可重复执行，会创建或重建 `monthly_kpi` View。View 按自然月输出以下字段：
+
+```text
+month,gmv,order_count,average_order_value,new_users,active_users
+```
+
+指标口径以 [`docs/metric_definition.md`](docs/metric_definition.md) 和 [`docs/metric_dictionary.csv`](docs/metric_dictionary.csv) 为准。详细字段说明参见 [`docs/monthly_kpi_dictionary.md`](docs/monthly_kpi_dictionary.md)，已导出的实际月度结果位于 [`outputs/data/02_business_overview/monthly_kpi.csv`](outputs/data/02_business_overview/monthly_kpi.csv)。
+
+可以执行以下命令检查 View 是否可正常查询：
+
+```powershell
+python -c "import sqlite3; c=sqlite3.connect(r'database/brazil_ecommerce.db'); print(c.execute('SELECT * FROM monthly_kpi ORDER BY month LIMIT 5').fetchall()); c.close()"
+```
+
+## 九、全新仓库的推荐执行顺序
+
+组员首次将仓库拉取到本地后，应在项目根目录按以下顺序运行。首次使用时先安装依赖：
+
+```powershell
+pip install -r requirements.txt
+```
+
+然后依次执行：
+
+```powershell
+# 1. 使用 9 个原始 CSV 构建本地 SQLite 数据库
+python src\data_processing\build_sqlite_database.py
+
+# 2. 创建阶段一清洗 View
+python -c "from pathlib import Path; import sqlite3; c=sqlite3.connect(r'database/brazil_ecommerce.db'); c.executescript(Path(r'sql/02_data_cleaning/data_cleaning_rules.sql').read_text(encoding='utf-8-sig')); c.close()"
+
+# 3. 创建阶段二月度 KPI 公共 View
+python -c "from pathlib import Path; import sqlite3; c=sqlite3.connect(r'database/brazil_ecommerce.db'); c.executescript(Path(r'sql/02_business_overview/00_monthly_kpi_view.sql').read_text(encoding='utf-8-sig')); c.close()"
+```
+
+执行依赖关系如下：
+
+```text
+9 个原始 CSV
+  → build_sqlite_database.py 构建数据库
+  → data_cleaning_rules.sql 创建清洗 View
+  → 00_monthly_kpi_view.sql 创建 monthly_kpi
+```
+
+如果本地已经存在完整且最新的 `database/brazil_ecommerce.db`，可以跳过数据库构建；如果数据库中尚未创建清洗 View，则仍需依次执行清洗 SQL 和月度 KPI SQL。
