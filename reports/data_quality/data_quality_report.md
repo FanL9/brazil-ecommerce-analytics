@@ -1,211 +1,118 @@
-# 数据质量评估报告
->数据集：Olist 巴西电商数据集，共9张数据表
+# Brazil Olist 数据质量报告（第 1—11 项）
 
-## 目录
-1. 基础统计：各表总行数
-2. 缺失值检查
-3. 重复记录检查
-4. 检查关键重复
-5. 表间关联完整性检查
-6. 数值异常检查（金额类）
-7. 时间字段异常检查
-8. 业务标识键空值检测
-9. IQR四分位法数值异常值检测
-10. 异常处理规则汇总
+## 数据与执行范围
 
----
+- 数据库：`database/brazil_ecommerce.db`（SQLite）。
+- 规模：9 张原始表；`orders` 99,441 行、`order_items` 112,650 行、
+  `order_payments` 103,886 行、`order_reviews` 99,224 行、`geolocation` 1,000,163 行。
+- 表名、字段与类型已通过 `PRAGMA table_info(...)` 核对；数据库构建脚本为
+  `src/data_processing/build_sqlite_database.py`。
+- 原第 1—8 项使用 MySQL 的 `USE`、`IF()`，本次只做 SQLite 兼容性机械修改：
+  注释 `USE`，将 `IF()` 改为语义相同的 SQLite `IIF()`；原检查逻辑未重写。
 
-## 1. 基础统计：各表总行数
+## 第 1—8 项已有检查复核
 
-| 表名                            | 总行数  |
-|---------------------------------|---------||
-| customers                       | 99441   |
-| geolocation                     | 1000163 |
-| order_items                     | 112650  |
-| order_payments                  | 103886  |
-| order_reviews                   | 99224   |
-| orders                          | 99441   |
-| product_category_name_translation | 71    |
-| products                        | 32951   |
-| sellers                         | 3095    |
+- 9 张表的主键/复合业务键未发现 NULL；数据库声明主键未发现重复。
+- 外键检查中 orders→customers、items→orders/products/sellers、payments→orders、
+  reviews→orders 均为 0 条孤立记录。
+- 所有非空订单时间均可由 SQLite `DATETIME()` 解析，无不可转换时间。
+- 时间顺序错误共 1,382 条：承运时间早于审批时间 1,359 条、签收时间早于承运
+  时间 23 条；实际签收早于购买时间为 0 条。
+- 缺失时间：审批时间 160 条、承运时间 1,783 条、实际签收时间 2,965 条；
+  其中 delivered 订单缺失实际签收时间 8 条。
+- 支付金额为 0 的记录 9 条，负支付金额 0 条；商品价格为 0 或负数均为 0 条。
+- 地理表按邮编、经纬度、城市、州判断有 128,174 个完全重复组，首条之外共
+  261,831 行。邮编对应多个不同地理点属于合法一对多，不按邮编直接去重。
+- `review_id` 重复涉及 789 组、首条之外 814 行；同一订单多评论涉及 547 个订单、
+  额外评论 551 行。这不等同于所有额外评论均是错误，原评论明细予以保留。
+- 商品类别/名称长度/描述长度/图片数各缺失 610 行；重量和三个尺寸字段各缺失
+  2 行。评论标题和正文是可选文本，缺失不作为评分分析错误。
 
----
+## 第 9 项：IQR 极端值识别
 
-## 2. 缺失值检查
->说明：9张数据表中，仅 `olist_order_reviews_dataset`、`olist_orders_dataset`、`olist_products_dataset` 存在缺失值；
->其余6张表（customers、geolocation、order_items、order_payments、sellers、category翻译表）所有字段无缺失值。
+金额和配送时长均明显右偏，因此使用 IQR 而不是 3σ。NULL 或不可解析时间先排除；
+数值按 `(actual_value, record_key)` 稳定排序，Q1、中位数、Q3 分别使用
+`ceil(0.25n)`、`ceil(0.50n)`、`ceil(0.75n)` 的 nearest-rank 值。边界为
+`Q1-1.5×IQR` 与 `Q3+1.5×IQR`。
 
-### 2.1 关键标识字段空值检查
->关键字段：`order_id`、`customer_id`、`customer_unique_id`、`product_id`
->检测结果：全部关键字段缺失数量 = 0，业务主键无空值。
+| 字段                                |  有效数 |       Q1 |    中位数 |        Q3 |      IQR |      下界 |      上界 | 下端极端 | 上端极端 |
+| ----------------------------------- | ------: | -------: | --------: | --------: | -------: | --------: | --------: | -------: | -------: |
+| order_payments.payment_value        | 103,886 |    56.79 |    100.00 |    171.84 |   115.05 |  -115.785 |   344.415 |        0 |    7,981 |
+| order_payments.payment_installments | 103,886 |        1 |         1 |         4 |        3 |      -3.5 |       8.5 |        0 |    6,313 |
+| order_items.price                   | 112,650 |    39.90 |     74.99 |    134.90 |    95.00 |   -102.60 |    277.40 |        0 |    8,427 |
+| order_items.freight_value           | 112,650 |    13.08 |     16.26 |     21.15 |     8.07 |     0.975 |    33.255 |      521 |   11,613 |
+| orders.actual_delivery_days         |  96,476 | 6.766377 | 10.217500 | 15.720255 | 8.953877 | -6.664439 | 29.151071 |        0 |    4,899 |
 
-### 2.2 存在缺失值的三张明细表
+数值范围补充：支付金额最大 13,664.08、分期最大 24、商品价格最大 6,735、运费
+最大 409.68、实际配送时长最大 209.6286 天。长尾值没有因数值很大而自动删除。
 
-#### olist_order_reviews_dataset（总记录：99224）
-| 字段                     | 缺失数量 | 总记录 | 缺失率(%) |
-|--------------------------|---------:|-------:|----------:|
-| review_id                | 0       | 99224  | 0.00      |
-| order_id                 | 0       | 99224  | 0.00      |
-| review_score             | 0       | 99224  | 0.00      |
-| review_comment_title     | 87656   | 99224  | 88.34     |
-| review_comment_message   | 58247   | 99224  | 58.70     |
-| review_creation_date     | 0       | 99224  | 0.00      |
-| review_answer_timestamp  | 0       | 99224  | 0.00      |
+## 第 10 项：错误、真实极端与待复核分类
 
-#### olist_orders_dataset（总记录：99441）
-| 字段                           | 缺失数量 | 总记录 | 缺失率(%) |
-|--------------------------------|---------:|-------:|----------:|
-| order_id                       | 0       | 99441  | 0.00      |
-| customer_id                    | 0       | 99441  | 0.00      |
-| order_status                   | 0       | 99441  | 0.00      |
-| order_purchase_timestamp       | 0       | 99441  | 0.00      |
-| order_approved_at              | 160     | 99441  | 0.16      |
-| order_delivered_carrier_date   | 1783    | 99441  | 1.79      |
-| order_delivered_customer_date  | 2965    | 99441  | 2.98      |
-| order_estimated_delivery_date  | 0       | 99441  | 0.00      |
+| 字段                 | data_error | true_extreme | needs_review | 处理依据                                                     |
+| -------------------- | ---------: | -----------: | -----------: | ------------------------------------------------------------ |
+| payment_value        |          9 |        7,981 |            0 | 9 条非正支付不进入付费金额分析；合法高额支付保留             |
+| payment_installments |          0 |        6,313 |            2 | 高分期保留；2 条零分期无法推断正确值，仅标记                 |
+| price                |          0 |        8,427 |            0 | 高价格记录关键关联完整，保留并标记                           |
+| freight_value        |          0 |       11,751 |          383 | 383 条零运费可能是免邮，不能证明错误；其余合法长尾保留       |
+| actual_delivery_days |         21 |        4,885 |            1 | 13 条极端记录存在时序错误，8 条 delivered 无签收时间；1 条极端记录缺中间时间 |
+| **合计**             |     **30** |   **39,357** |      **386** | 分类记录含 IQR 极端和明确的非 IQR 错误                       |
 
-#### olist_products_dataset（总记录：32951）
-| 字段                      | 缺失数量 | 总记录 | 缺失率(%) |
-|---------------------------|---------:|-------:|----------:|
-| product_id                | 0       | 32951  | 0.00      |
-| product_category_name     | 610     | 32951  | 1.85      |
-| product_name_lenght       | 610     | 32951  | 1.85      |
-| product_description_lenght| 610     | 32951  | 1.85      |
-| product_photos_qty        | 610     | 32951  | 1.85      |
-| product_weight_g          | 2       | 32951  | 0.01      |
-| product_length_cm         | 2       | 32951  | 0.01      |
-| product_height_cm         | 2       | 32951  | 0.01      |
-| product_width_cm          | 2       | 32951  | 0.01      |
+IQR 极端记录总数为 39,754。分类记录总数为 39,773，差异 19 条来自 IQR 边界内
+但业务上仍需处理的记录：9 条零支付、2 条零分期、8 条 delivered 缺签收时间。
+超出 IQR 边界本身不构成错误证据。
 
+## 第 11 项：清洗规则与 Views
 
-### 2.3 其余数据表缺失情况
->olist_customers_dataset、olist_geolocation_dataset、olist_order_items_dataset、olist_order_payments_dataset、olist_sellers_dataset、product_category_name_translation：**全部字段无缺失值**。
+原始表不执行 `UPDATE` 或 `DELETE`。`data_cleaning_rules.sql` 使用
+`DROP VIEW IF EXISTS` + `CREATE VIEW`，已连续执行两次成功。
 
----
+| View                           |    行数 | 用途与规则                                                   |
+| ------------------------------ | ------: | ------------------------------------------------------------ |
+| `vw_orders_clean`              |  99,441 | 保留关键字段/客户关联有效订单；可选时间缺失和时序错误加标记  |
+| `vw_delivery_analysis_clean`   |  95,103 | 排除无法计算、负时长和明确时序错误；不设最大天数，IQR 长尾保留并标记 |
+| `vw_order_payments_clean`      | 103,877 | 排除 9 条非正支付；多次合法支付不去重；高额支付及零分期加标记 |
+| `vw_order_items_clean`         | 112,650 | 按订单商品真实业务键保留；价格/运费长尾及零运费加标记        |
+| `vw_geolocation_deduplicated`  | 738,332 | 仅对五个地理业务字段完全相同的记录确定性去重                 |
+| `vw_order_reviews_clean`       |  99,224 | 保留合法评论明细和同订单多评论；可选文本不填补               |
+| `vw_order_reviews_order_level` |  98,673 | 好评率专用，一单一条；按有效分数、回答时间、创建时间、review_id 确定排序 |
 
+具体处理动作：
 
-## 3. 重复记录检查
->完全重复行：整行所有字段全部相同
->重复记录检测用于识别数据表中完全或业务意义上等价的冗余行。
->针对 `olist_geolocation_dataset`，**重复判定不纳入 `geolocation_city` 字段**：巴西同一城市存在多种缩写、大小写、拼写变体，若将城市字段参与分组，会造成大量误判。
->实际判定依据：`geolocation_zip_code_prefix + geolocation_lat + geolocation_lng + geolocation_state`，组合一致即视为业务重复记录。
+- `retain`：合法 IQR 长尾、同订单多商品/多支付/多评论、customer_unique_id 对应多个
+  customer_id，以及同邮编的不同地理点。
+- `exclude`：非正支付仅从金额分析 View 排除；缺失/不可解析/负配送时长和明确时序
+  错误仅从配送分析 View 排除。原始订单仍保留。
+- `deduplicate`：仅对完全相同地理业务记录去重；评论只在订单级指标投影中按确定性
+  `ROW_NUMBER()` 取代表行，原评论明细不删除。
+- `correct`：0 项。当前没有能够从其他可靠字段唯一推出正确替代值的异常。
+- `flag`：所有保留的 IQR 极端值、零运费、零分期、可选时间缺失及订单时序问题。
 
-| Table name                      | Total rows | Redundant duplicate rows | Note |
-|---------------------------------|------------|--------------------------|------|
-| olist_orders_dataset            | 99441      | 0                        | No duplication |
-| olist_customers_dataset         | 99441      | 0                        | No duplication |
-| olist_order_items_dataset       | 115981     | 0                        | No duplication |
-| olist_order_payments_dataset    | 103886     | 0                        | No duplication |
-| olist_order_reviews_dataset     | 99224      | 0                        | No duplication |
-| olist_products_dataset          | 32951      | 0                        | No duplication |
-| olist_sellers_dataset           | 3095       | 0                        | No duplication |
-| olist_geolocation_dataset       | 400004     | 280007                   | Massive redundancy; city excluded from duplicate check |
-| olist_category_name_translation | 71         | 0                        | No duplication |
+## 对后续指标的影响
 
----
+- LTV/GMV：建议从 `vw_order_payments_clean` 先按 order_id 聚合；9 条零支付被排除，
+  高额真实支付继续计入，避免系统性低估高价值用户。
+- 配送时长与延迟率：使用 `vw_delivery_analysis_clean`；明确时序错误不会污染时长，
+  但 4,886 条按原始第 9 项上界识别且仍可分析的长尾记录全部保留并标记。
+- 好评率：使用 `vw_order_reviews_order_level`，每个 order_id 最多一行；在 delivered
+  订单口径下仍得到 95,832 个有效评论订单和 75,643 个好评订单。
+- 商品与运费：保留高价格、高运费和免邮记录，因此品类销售与物流成本分析不会因
+  主观截尾而偏低。
 
-## 4. 检查关键重复
-### 4.1 Detect duplicate orders**
-检测`orders`表主键`order_id`，未发现重复。
+## 执行验证结论
 
-### 4.2 Detect duplicate customers**
-在`orders`表中检测`customer_id`，未发现重复。
+- `data_quality_check.sql` 已由 SQLite 完整执行；5 个 IQR 字段均返回统计及记录明细。
+- 第 10 项分类中，IQR 极端记录按字段逐项与第 9 项对应；额外 19 条业务异常已单列。
+- `data_cleaning_rules.sql` 连续执行两次成功；7 个 View 均可查询。
+- 清洗前后 9 张原始表行数逐表完全一致。
+- 清洗支付 View 中非正支付为 0；配送 View 中负时长为 0。
+- 原第 9 项判定的合法支付、价格、运费和配送长尾均保留且可由标记字段识别。
+- 地理去重 View 的完整业务字段重复组为 0；评论订单级 View 的重复 order_id 为 0。
+- `outputs/data_quality_issues.csv` 的所有数量已与 SQL 查询逐项复核。
+- `PRAGMA integrity_check` 返回 `ok`。
 
-### 4.3 Detect duplicate order‑item records**
-检测`order_items`业务组合键 `(order_id, order_item_id)`，未发现重复。
+## 仍需人工确认
 
-### 4.4 Detect duplicate payment sequential entries**
-检测`order_payments`业务组合键 `(order_id, payment_sequential)`，未发现重复。
-
-### 4.5 Detect duplicate review records**
-- 第一步CTE：筛选出全部出现多次的`review_id`（主键重复的id）
-- 第二步明细查询：取出这些重复`review_id`的原始数据，同时按`review_id, review_comment_title, review_comment_message`分组。
-> 作用：不仅识别`review_id`主键重复，进一步查看**同一个重复id下，评论标题、评论内容是否一致**，区分是整行拷贝的脏重复，还是ID冲突但评价内容不同
-- 第三步统计查询：计算得到主键重复带来的**总冗余行数为841**
-
-| 检测对象                | 检测键                          | 是否检出重复 | 冗余重复行数 |
-|-------------------------|---------------------------------|--------------|--------------|
-| orders                  | order_id                        | 否           | 0            |
-| customers（orders表）   | customer_id                     | 否           | 0            |
-| order_items             | order_id, order_item_id         | 否           | 0            |
-| order_payments          | order_id, payment_sequential    | 否           | 0            |
-| order_reviews           | review_id, review_comment_title, review_comment_message | 是           | 841          |
-
----
-
-## 5. 表间关联完整性检查
->外键断裂：子表ID在主表找不到对应记录，无法join关联
->参照完整性用于校验外键关联：检查子表中的关联字段，是否能够在父表中找到对应的匹配记录，识别**子表存在、父表不存在**的孤立脏数据。
-
-| 检测内容 | 校验逻辑 | 是否存在孤立记录 |
-|----------|----------|------------------|
-| Orders cannot be linked to customers | 校验`orders`表的`customer_id`，是否可以在`customers`表找到对应客户 | 否（normal） |
-| Order‑items cannot be linked to orders | 校验`order_items`表的`order_id`，是否可以在`orders`表找到对应订单 | 否（normal） |
-| Products cannot be linked to product information | 校验订单项内产品ID，是否可以在产品基础信息表找到匹配记录 | 否（normal） |
-| Payments cannot be linked to orders | 校验`order_payments`表的`order_id`，是否可以在`orders`表找到对应订单 | 否（normal） |
-| Reviews cannot be linked to orders | 校验`order_reviews`表的`order_id`，是否可以在`orders`表找到对应订单 | 否（normal） |
-
----
-
-## 6. 数值异常检查（金额类）
->针对货币、金额类数值字段做业务合法性校验，识别空值、零值、负数等不符合业务逻辑的异常金额。
-
-| 序号 | 检测内容 | 校验逻辑 | 检测结果 |
-|------|----------|----------|----------|
-| 6.1  | Check NULL monetary values | 检查金额字段是否存在NULL空值 | normal（无异常） |
-| 6.2  | Check zero monetary values | 检查金额字段是否存在等于0的记录 | normal（无异常） |
-| 6.3  | Check negative monetary values | 检查金额字段是否存在小于0的负数记录 | normal（无异常） |
-
----
-
-## 7. 时间字段异常检查
->检查点：空值、无法转换、时间顺序错误、超出业务时间范围
->针对订单时间字段开展校验，检测时间空值、非法时间格式、业务时序颠倒三类时间相关异常。
->业务正常时序：`order_purchase_timestamp`（下单） → `order_approved_at`（审核） → `order_delivered_carrier_date`（交物流） → `order_delivered_customer_date`（用户签收）
-
-| 序号 | 检测内容 | 校验逻辑 | 检测结果 |
-|------|----------|----------|----------|
-| 7.1  | Check time NULL values | 检查订单各时间字段是否存在NULL空值 | have missing values（存在时间缺失） |
-| 7.2  | Check untranslatable / invalid timestamps | 检查是否存在无法解析、格式非法的时间戳 | normal（无异常） |
-| 7.3  | Check wrong chronological order | 校验业务时间先后顺序，识别时序颠倒记录 | have chronological error（存在时序错误） |
-
->**注释**
->扫描订单全部关键时间戳，任意一个时间字段为NULL即标记为缺失；数据集存在部分订单时间信息空缺。
->校验时间字符串是否可以正常转换为时间类型，未发现格式损坏的时间。
->业务上后续节点时间不能早于前置节点；识别审核早于下单、签收早于发货等时间倒流的业务逻辑错误。
-
----
-
-## 8. 业务标识键空值检测
->检测各表核心业务ID字段是否存在NULL。主键/业务标识键一旦为空，该行记录将无法唯一识别、无法参与表关联。
-
-| 序号 | 检测内容 | 校验逻辑 | 检测结果 |
-|------|----------|----------|----------|
-| 8.1  | order_id | 检查`orders`表`order_id`、`customer_id`是否为空 | no missing value（无缺失） |
-| 8.2  | customer_id and customer_unique_id | 检查`customers`表`customer_id`、`customer_unique_id`是否为空 | no missing value（无缺失） |
-| 8.3  | product_id | 检查`order_items`表`order_id`、`product_id`是否为空 | no missing value（无缺失） |
-
----
-
-## 9. IQR四分位法数值异常值检测
->使用箱线图IQR（四分位距）规则识别数值字段的上下极端异常。
-- 下边界：Q1 - 1.5*IQR
-- 上边界：Q3 + 1.5*IQR
->小于下边界为**下极端异常**；大于上边界为**上极端异常**
-
-| 序号 | source_table | field_name | valid_count | min_value | q1 | median | q3 | max_value | lower_bound | upper_bound | lower_extreme_count | upper_extreme_count |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 9.1 | order_items | freight_value | 112650 | 0 |13.08 |16.26 |21.15 |409.68 |0.975 |33.255 |0 |11613 |
-| 9.2 | order_items | price | 112650 |0.85 |39.9 |74.99 |134.9 |6735 |‑102.6 |277.4 |0 |8427 |
-| 9.3 | order_payments | payment_installments |103886 |0 |1 |1 |4 |24 |‑3.5 |8.5 |0 |6313 |
-| 9.4 | order_payments | payment_value |103886 |0 |56.79 |100 |171.84 |13664.08 |‑115.785 |344.415 |0 |7981 |
-| 9.5 | orders | actual_delivery_days |96476 |0.53 |6.77 |10.22 |15.72 |209.63 |‑6.66 |29.15 |0 |4899 |
-
-> **注释**
-> 1. 所有字段均**无下侧异常值（lower_extreme_count = 0）**；全部异常集中在上边界以外，即数值偏大的极端样本。
-> 2. `freight_value`运费字段上侧异常最多，共11613条；其次是`payment_value`支付金额7981条。
-> 3. IQR仅做异常标记，不直接删除；部分大值属于业务真实场景（高价商品、超长配送、多期分期），需要结合业务再评估，不能直接判定为脏数据。
-
----
-
-## 10. 异常处理规则汇总
+1. 383 条零运费是否全部为免邮活动，目前没有营销/补贴字段可证明。
+2. 2 条零分期记录应为 1 期还是其他值，现有字段无法唯一纠正。
+3. 1 条长配送极端记录缺少中间物流时间，首尾时长可计算但完整时序无法确认。
+4. `review_id` 跨记录重复是否源系统重发；当前保留明细，仅在订单级指标中确定性取一条。

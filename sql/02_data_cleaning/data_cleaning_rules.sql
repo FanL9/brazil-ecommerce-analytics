@@ -251,34 +251,13 @@ View: vw_geolocation_deduplicated
 影响指标：邮编地域映射与地图聚合，避免完全重复点获得额外权重。
 */
 CREATE VIEW vw_geolocation_deduplicated AS
-WITH ranked AS (
-    SELECT
-        geolocation_id,
-        geolocation_zip_code_prefix,
-        geolocation_lat,
-        geolocation_lng,
-        geolocation_city,
-        geolocation_state,
-        ROW_NUMBER() OVER (
-            PARTITION BY
-                geolocation_zip_code_prefix,
-                geolocation_lat,
-                geolocation_lng,
-                geolocation_city,
-                geolocation_state
-            ORDER BY geolocation_id
-        ) AS duplicate_rank
-    FROM geolocation
-)
-SELECT
-    geolocation_id,
+SELECT DISTINCT
     geolocation_zip_code_prefix,
     geolocation_lat,
     geolocation_lng,
     geolocation_city,
     geolocation_state
-FROM ranked
-WHERE duplicate_rank = 1;
+FROM geolocation;
 
 /*
 View: vw_order_reviews_clean
