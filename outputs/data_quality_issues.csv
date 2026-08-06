@@ -1,0 +1,39 @@
+source_table,field_name,issue_type,issue_count,handling_rule
+customers,all,Missing (NULL/Empty),0,exclude
+customers,all,Duplicate Value,0,exclude
+geolocation,all,Missing (NULL/Empty),0,exclude
+geolocation,all,Duplicate Value,0,exclude
+order_items,all,Missing (NULL/Empty),0,exclude
+order_items,all,Duplicate Value,0,exclude
+order_payments,all,Missing (NULL/Empty),0,exclude
+order_payments,all,Duplicate Value,0,exclude
+order_reviews,all,Missing (NULL/Empty),89385,exclude
+order_reviews,all,Duplicate Value,280007,exclude
+orders,all,Missing (NULL/Empty),2980,exclude
+orders,all,Duplicate Value,0,exclude
+product_category_name_translation,all,Missing (NULL/Empty),0,exclude
+product_category_name_translation,all,Duplicate Value,0,exclude
+products,all,Missing (NULL/Empty),611,exclude
+products,all,Duplicate Value,0,exclude
+sellers,all,Missing (NULL/Empty),0,exclude
+sellers,all,Duplicate Value,0,exclude
+order_items,freight_value,Missing (NULL/Empty),0,exclude
+order_items,freight_value,Invalid Data Type,0,exclude
+order_items,freight_value,Low Outlier (Below Q1-1.5*IQR),521,retain
+order_items,freight_value,High Outlier (Above Q3+1.5*IQR),11751,retain
+order_items,price,Missing (NULL/Empty),0,exclude
+order_items,price,Invalid Data Type,0,exclude
+order_items,price,Low Outlier (Below Q1-1.5*IQR),0,retain
+order_items,price,High Outlier (Above Q3+1.5*IQR),8427,retain
+order_payments,payment_installments,Missing (NULL/Empty),0,exclude
+order_payments,payment_installments,Invalid Data Type,0,exclude
+order_payments,payment_installments,Low Outlier (Below Q1-1.5*IQR),0,retain
+order_payments,payment_installments,High Outlier (Above Q3+1.5*IQR),6311,retain
+order_payments,payment_value,Missing (NULL/Empty),0,exclude
+order_payments,payment_value,Invalid Data Type,0,exclude
+order_payments,payment_value,Low Outlier (Below Q1-1.5*IQR),0,retain
+order_payments,payment_value,High Outlier (Above Q3+1.5*IQR),7981,retain
+orders,actual_delivery_days,Missing (NULL/Empty),2965,exclude
+orders,actual_delivery_days,Invalid Data Type,0,exclude
+orders,actual_delivery_days,Low Outlier (Below Q1-1.5*IQR),0,retain
+orders,actual_delivery_days,High Outlier (Above Q3+1.5*IQR),4885,retain
