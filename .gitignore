@@ -17,3 +17,6 @@ database/*.db
 database/*.db-journal
 database/*.db-wal
 database/*.db-shm
+
+# Local plotting cache
+outputs/.matplotlib-cache/

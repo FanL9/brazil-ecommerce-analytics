@@ -170,3 +170,21 @@ python -c "from pathlib import Path; import sqlite3; c=sqlite3.connect(r'databas
 ```
 
 如果本地已经存在完整且最新的 `database/brazil_ecommerce.db`，可以跳过数据库构建；如果数据库中尚未创建清洗 View，则仍需依次执行清洗 SQL 和月度 KPI SQL。
+
+## 十、运行阶段三 Member 1 用户画像分析
+
+阶段三用户画像复用阶段一清洗 View，并建立订单级 `customer_order_base` 与用户级 `customer_profile` 两个公共表。数据库与清洗 View 准备完成后，从项目根目录执行：
+
+```powershell
+.venv\Scripts\python.exe src\analysis\customer_analysis\customer_profile_analysis.py
+```
+
+脚本会自动执行 `sql/05_customer_analysis` 下的两个 SQL 文件，随后导出：
+
+- 用户与订单公共层：`outputs/data/03_customer_analysis/`
+- 州、城市、时段和潜力区域市场统计：`outputs/data/03_customer_analysis/`
+- 300 DPI 图表：`visualizations/customer/`
+- 分析报告：`reports/customer/customer_analysis_report.md`
+- 验证明细：`outputs/data/03_customer_analysis/customer_analysis_validation.csv`
+
+公共层字段、代表地域规则和下游使用说明参见 [`docs/customer_common_layer_dictionary.md`](docs/customer_common_layer_dictionary.md)。该阶段不依赖 `monthly_kpi`，但依赖 `vw_orders_clean` 与 `vw_order_payments_clean`；如缺少清洗 View，请先执行本 README 第七节命令。

@@ -56,3 +56,16 @@ python src\data_processing\build_sqlite_database.py
 3. 在数据库文件位置选择项目内的 `database/brazil_ecommerce.db`。
 4. 测试并完成连接，然后刷新 **Tables**，应看到 9 张业务表。
 5. 若要重新运行构建脚本，请先断开 DBeaver 对该文件的连接，避免 Windows 文件锁阻止原子替换。
+
+## 阶段三派生公共表
+
+运行以下命令会在本地数据库中创建或重建两个派生公共表及配套分析 View，不会修改九张原始表：
+
+```powershell
+.venv\Scripts\python.exe src\analysis\customer_analysis\customer_profile_analysis.py
+```
+
+- `customer_order_base`：一行一个 delivered 订单。
+- `customer_profile`：一行一个 `customer_unique_id`。
+
+运行前需要已经创建 `vw_orders_clean` 与 `vw_order_payments_clean`。字段与地域归属规则见 `docs/customer_common_layer_dictionary.md`。
