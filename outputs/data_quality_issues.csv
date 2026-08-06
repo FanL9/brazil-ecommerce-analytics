@@ -1,39 +1,23 @@
-source_table,field_name,issue_type,issue_count,handling_rule
-customers,all,Missing (NULL/Empty),0,exclude
-customers,all,Duplicate Value,0,exclude
-geolocation,all,Missing (NULL/Empty),0,exclude
-geolocation,all,Duplicate Value,0,exclude
-order_items,all,Missing (NULL/Empty),0,exclude
-order_items,all,Duplicate Value,0,exclude
-order_payments,all,Missing (NULL/Empty),0,exclude
-order_payments,all,Duplicate Value,0,exclude
-order_reviews,all,Missing (NULL/Empty),89385,exclude
-order_reviews,all,Duplicate Value,280007,exclude
-orders,all,Missing (NULL/Empty),2980,exclude
-orders,all,Duplicate Value,0,exclude
-product_category_name_translation,all,Missing (NULL/Empty),0,exclude
-product_category_name_translation,all,Duplicate Value,0,exclude
-products,all,Missing (NULL/Empty),611,exclude
-products,all,Duplicate Value,0,exclude
-sellers,all,Missing (NULL/Empty),0,exclude
-sellers,all,Duplicate Value,0,exclude
-order_items,freight_value,Missing (NULL/Empty),0,exclude
-order_items,freight_value,Invalid Data Type,0,exclude
-order_items,freight_value,Low Outlier (Below Q1-1.5*IQR),521,retain
-order_items,freight_value,High Outlier (Above Q3+1.5*IQR),11751,retain
-order_items,price,Missing (NULL/Empty),0,exclude
-order_items,price,Invalid Data Type,0,exclude
-order_items,price,Low Outlier (Below Q1-1.5*IQR),0,retain
-order_items,price,High Outlier (Above Q3+1.5*IQR),8427,retain
-order_payments,payment_installments,Missing (NULL/Empty),0,exclude
-order_payments,payment_installments,Invalid Data Type,0,exclude
-order_payments,payment_installments,Low Outlier (Below Q1-1.5*IQR),0,retain
-order_payments,payment_installments,High Outlier (Above Q3+1.5*IQR),6311,retain
-order_payments,payment_value,Missing (NULL/Empty),0,exclude
-order_payments,payment_value,Invalid Data Type,0,exclude
-order_payments,payment_value,Low Outlier (Below Q1-1.5*IQR),0,retain
-order_payments,payment_value,High Outlier (Above Q3+1.5*IQR),7981,retain
-orders,actual_delivery_days,Missing (NULL/Empty),2965,exclude
-orders,actual_delivery_days,Invalid Data Type,0,exclude
-orders,actual_delivery_days,Low Outlier (Below Q1-1.5*IQR),0,retain
-orders,actual_delivery_days,High Outlier (Above Q3+1.5*IQR),4885,retain
+issue_id,issue_type,source_table,field_name,record_key,issue_value,issue_count,classification,handling_rule
+DQ001,duplicate_record,geolocation,geolocation_business_fields,,Exact duplicate beyond first deterministic row,261831,data_error,deduplicate
+DQ002,duplicate_identifier,order_reviews,review_id,,Rows beyond first occurrence of duplicated review_id,814,needs_review,flag
+DQ003,one_to_many_review,order_reviews,order_id,,Additional reviews on multi-review orders,551,needs_review,retain_detail_and_deduplicate_order_level
+DQ004,missing_value,orders,order_approved_at,,NULL,160,needs_review,flag
+DQ005,missing_value,orders,order_delivered_carrier_date,,NULL,1783,needs_review,flag
+DQ006,missing_value,orders,order_delivered_customer_date,,NULL across all statuses,2965,needs_review,exclude_delivery_analysis_only
+DQ007,chronology_error,orders,order_delivered_carrier_date,,Carrier timestamp earlier than approval timestamp,1359,data_error,exclude_delivery_analysis
+DQ008,chronology_error,orders,order_delivered_customer_date,,Customer delivery earlier than carrier timestamp,23,data_error,exclude_delivery_analysis
+DQ009,missing_metadata,products,product_category_name,,NULL or empty,610,needs_review,flag
+DQ010,missing_metadata,products,product_physical_attributes,,Weight or dimensions missing,2,needs_review,flag
+DQ011,extreme_value,order_payments,payment_value,,Above IQR upper bound 344.415,7981,true_extreme,retain_and_flag
+DQ012,invalid_value,order_payments,payment_value,,Non-positive payment value,9,data_error,exclude
+DQ013,extreme_value,order_payments,payment_installments,,Above IQR upper bound 8.5,6313,true_extreme,retain_and_flag
+DQ014,ambiguous_value,order_payments,payment_installments,,Zero installments,2,needs_review,flag
+DQ015,extreme_value,order_items,price,,Above IQR upper bound 277.4,8427,true_extreme,retain_and_flag
+DQ016,extreme_value,order_items,freight_value,,Positive value below IQR lower bound 0.975,138,true_extreme,retain_and_flag
+DQ017,ambiguous_value,order_items,freight_value,,Zero freight below IQR lower bound 0.975,383,needs_review,retain_and_flag
+DQ018,extreme_value,order_items,freight_value,,Above IQR upper bound 33.255,11613,true_extreme,retain_and_flag
+DQ019,extreme_value,orders,actual_delivery_days,,Above IQR upper bound 29.1510706011 with valid chronology,4885,true_extreme,retain_and_flag
+DQ020,extreme_with_error,orders,actual_delivery_days,,Above IQR upper bound with impossible chronology,13,data_error,exclude_delivery_analysis
+DQ021,extreme_needs_review,orders,actual_delivery_days,,Above IQR upper bound with missing intermediate timestamp,1,needs_review,retain_and_flag
+DQ022,missing_required_delivery,orders,order_delivered_customer_date,,Delivered order missing actual delivery timestamp,8,data_error,exclude_delivery_analysis
