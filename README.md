@@ -184,7 +184,6 @@ RFM 分析依赖阶段三用户画像脚本创建的订单级 `customer_order_ba
 
 该脚本可重复执行，所有路径均基于项目根目录解析。默认使用 `database/brazil_ecommerce.db`；如需指定其他数据库，可增加 `--database <项目相对路径>`。
 
->>>>>>> Stashed changes
 ## 十一、打开交互式可视化面板
 
 在项目根目录打开 PowerShell，激活虚拟环境并安装依赖：
