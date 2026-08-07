@@ -188,3 +188,17 @@ python -c "from pathlib import Path; import sqlite3; c=sqlite3.connect(r'databas
 - 验证明细：`outputs/data/03_customer_analysis/customer_analysis_validation.csv`
 
 公共层字段、代表地域规则和下游使用说明参见 [`docs/customer_common_layer_dictionary.md`](docs/customer_common_layer_dictionary.md)。该阶段不依赖 `monthly_kpi`，但依赖 `vw_orders_clean` 与 `vw_order_payments_clean`；如缺少清洗 View，请先执行本 README 第七节命令。
+
+## 十一、打开交互式可视化面板
+
+在项目根目录打开 PowerShell，激活虚拟环境并安装依赖：
+
+```powershell
+.venv\Scripts\activate
+pip install -r requirements.txt
+
+运行python -m streamlit run src\analysis\business_overview\dashboard.py
+
+或手动访问 http://localhost:8501
+
+停止运行时，在终端输入Ctrl + C
