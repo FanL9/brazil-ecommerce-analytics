@@ -1,0 +1,9 @@
+﻿metric,percentile_label,percentile_value,boundary_value,scoring_direction,boundary_method
+recency_days,P20,0.2,86.00,lower_is_better,empirical_nearest_rank_on_customer_distribution
+recency_days,P40,0.4,163.00,lower_is_better,empirical_nearest_rank_on_customer_distribution
+recency_days,P60,0.6,247.00,lower_is_better,empirical_nearest_rank_on_customer_distribution
+recency_days,P80,0.8,363.00,lower_is_better,empirical_nearest_rank_on_customer_distribution
+monetary,P20,0.2,55.27,higher_is_better,empirical_nearest_rank_on_customer_distribution
+monetary,P40,0.4,87.55,higher_is_better,empirical_nearest_rank_on_customer_distribution
+monetary,P60,0.6,133.05,higher_is_better,empirical_nearest_rank_on_customer_distribution
+monetary,P80,0.8,208.99,higher_is_better,empirical_nearest_rank_on_customer_distribution
