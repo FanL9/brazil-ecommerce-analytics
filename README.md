@@ -157,8 +157,7 @@ python -c "import sqlite3; c=sqlite3.connect(r'database/brazil_ecommerce.db'); p
 
 公共层字段、代表地域规则和下游使用说明参见 [`docs/customer_common_layer_dictionary.md`](docs/customer_common_layer_dictionary.md)。该阶段不依赖 `monthly_kpi`，但依赖 `vw_orders_clean` 与 `vw_order_payments_clean`；如缺少清洗 View，请先执行本 README 第七节命令。
 
-<<<<<<< Updated upstream
-=======
+
 ## 十、运行阶段三 Member 1 RFM 用户价值分析
 
 RFM 分析依赖阶段三用户画像脚本创建的订单级 `customer_order_base` 和用户级 `customer_profile`。首次运行或公共表需要更新时，先执行：
