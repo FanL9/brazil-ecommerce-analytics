@@ -139,34 +139,61 @@ month,gmv,order_count,average_order_value,new_users,active_users
 python -c "import sqlite3; c=sqlite3.connect(r'database/brazil_ecommerce.db'); print(c.execute('SELECT * FROM monthly_kpi ORDER BY month LIMIT 5').fetchall()); c.close()"
 ```
 
-## 九、全新仓库的推荐执行顺序
+## 九、运行阶段三 Member 1 用户画像分析
 
-组员首次将仓库拉取到本地后，应在项目根目录按以下顺序运行。首次使用时先安装依赖：
+阶段三用户画像复用阶段一清洗 View，并建立订单级 `customer_order_base` 与用户级 `customer_profile` 两个公共表。数据库与清洗 View 准备完成后，从项目根目录执行：
 
 ```powershell
+.venv\Scripts\python.exe src\analysis\customer_analysis\customer_profile_analysis.py
+```
+
+脚本会自动执行 `sql/05_customer_analysis` 下的两个 SQL 文件，随后导出：
+
+- 用户与订单公共层：`outputs/data/03_customer_analysis/`
+- 州、城市、时段和潜力区域市场统计：`outputs/data/03_customer_analysis/`
+- 300 DPI 图表：`visualizations/customer/`
+- 分析报告：`reports/customer/customer_analysis_report.md`
+- 验证明细：`outputs/data/03_customer_analysis/customer_analysis_validation.csv`
+
+公共层字段、代表地域规则和下游使用说明参见 [`docs/customer_common_layer_dictionary.md`](docs/customer_common_layer_dictionary.md)。该阶段不依赖 `monthly_kpi`，但依赖 `vw_orders_clean` 与 `vw_order_payments_clean`；如缺少清洗 View，请先执行本 README 第七节命令。
+
+
+## 十、运行阶段三 Member 1 RFM 用户价值分析
+
+RFM 分析依赖阶段三用户画像脚本创建的订单级 `customer_order_base` 和用户级 `customer_profile`。首次运行或公共表需要更新时，先执行：
+
+```powershell
+.venv\Scripts\python.exe src\analysis\customer_analysis\customer_profile_analysis.py
+```
+
+随后从项目根目录执行 RFM 全流程：
+
+```powershell
+.venv\Scripts\python.exe src\analysis\customer_analysis\rfm_analysis.py
+```
+
+脚本固定使用 `2018-07-31` 作为观察截止日，会自动执行 RFM SQL、导出用户明细和层级汇总、运行严格验证、生成 300 DPI 图表，并更新规则说明与分析报告。主要交付物包括：
+
+- Member 3 用户明细：`outputs/data/03_customer_analysis/rfm_customer_detail.csv`
+- 层级汇总：`outputs/data/03_customer_analysis/rfm_segment_summary.csv`
+- 评分边界和 Frequency 映射：`outputs/data/03_customer_analysis/rfm_scoring_boundaries.csv`、`rfm_frequency_score_mapping.csv`
+- 验证明细：`outputs/data/03_customer_analysis/rfm_validation.csv`
+- 评分规则：[`docs/rfm_scoring_rules.md`](docs/rfm_scoring_rules.md)
+- 分析报告：[`reports/customer/rfm_customer_value_report.md`](reports/customer/rfm_customer_value_report.md)
+- 核心图表：`visualizations/customer/rfm/`
+
+该脚本可重复执行，所有路径均基于项目根目录解析。默认使用 `database/brazil_ecommerce.db`；如需指定其他数据库，可增加 `--database <项目相对路径>`。
+
+## 十一、打开交互式可视化面板
+
+在项目根目录打开 PowerShell，激活虚拟环境并安装依赖：
+
+```powershell
+.venv\Scripts\activate
 pip install -r requirements.txt
-```
 
-然后依次执行：
+运行python -m streamlit run src\analysis\business_overview\dashboard.py
 
-```powershell
-# 1. 使用 9 个原始 CSV 构建本地 SQLite 数据库
-python src\data_processing\build_sqlite_database.py
+或手动访问 http://localhost:8501
 
-# 2. 创建阶段一清洗 View
-python -c "from pathlib import Path; import sqlite3; c=sqlite3.connect(r'database/brazil_ecommerce.db'); c.executescript(Path(r'sql/02_data_cleaning/data_cleaning_rules.sql').read_text(encoding='utf-8-sig')); c.close()"
-
-# 3. 创建阶段二月度 KPI 公共 View
-python -c "from pathlib import Path; import sqlite3; c=sqlite3.connect(r'database/brazil_ecommerce.db'); c.executescript(Path(r'sql/02_business_overview/00_monthly_kpi_view.sql').read_text(encoding='utf-8-sig')); c.close()"
-```
-
-执行依赖关系如下：
-
-```text
-9 个原始 CSV
-  → build_sqlite_database.py 构建数据库
-  → data_cleaning_rules.sql 创建清洗 View
-  → 00_monthly_kpi_view.sql 创建 monthly_kpi
-```
-
-如果本地已经存在完整且最新的 `database/brazil_ecommerce.db`，可以跳过数据库构建；如果数据库中尚未创建清洗 View，则仍需依次执行清洗 SQL 和月度 KPI SQL。
+停止运行时，在终端输入Ctrl + C

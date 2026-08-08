@@ -1,0 +1,10 @@
+﻿frequency,f_score,distinct_values_in_score,scoring_method
+1,1,2,NTILE(5) applied to distinct frequency values only
+2,1,2,NTILE(5) applied to distinct frequency values only
+3,2,2,NTILE(5) applied to distinct frequency values only
+4,2,2,NTILE(5) applied to distinct frequency values only
+5,3,2,NTILE(5) applied to distinct frequency values only
+6,3,2,NTILE(5) applied to distinct frequency values only
+7,4,2,NTILE(5) applied to distinct frequency values only
+9,4,2,NTILE(5) applied to distinct frequency values only
+12,5,1,NTILE(5) applied to distinct frequency values only

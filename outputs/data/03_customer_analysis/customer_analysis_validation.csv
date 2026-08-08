@@ -1,0 +1,15 @@
+﻿check_id,check_name,status,actual,expected,tolerance,details
+V01,customer_profile 的 customer_unique_id 唯一,PASS,93358,93358,exact,
+V02,customer_profile 无空 customer_unique_id,PASS,0,0,exact,
+V03,customer_order_base 的 order_id 唯一,PASS,96478,96478,exact,
+V04,用户累计 GMV 与订单级 GMV 一致,PASS,15422461.77,15422461.77,0.01,
+V05,州级用户数合计与用户公共表一致,PASS,93358,93358,exact,
+V06,州级 GMV 合计与总 GMV 一致,PASS,15422461.77,15422461.77,0.01,
+V07,城市级用户数和 GMV 与总体对账,PASS,users=93358; gmv=15422461.77,users=93358; gmv=15422461.77,0.01,
+V08,24 小时订单数和 GMV 与总体对账,PASS,orders=96478; gmv=15422461.77,orders=96478; gmv=15422461.77,0.01,
+V09,星期分布订单数和 GMV 与总体对账,PASS,orders=96478; gmv=15422461.77,orders=96478; gmv=15422461.77,0.01,
+V10,工作日/周末订单数和 GMV 与总体对账,PASS,orders=96478; gmv=15422461.77,orders=96478; gmv=15422461.77,0.01,
+V11,州/城市/时段占比合计为 1,PASS,"state:user_share=1.00000000,gmv_share=1.00000000 | city:user_share=1.00000000,gmv_share=1.00000000 | hour:order_share=1.00000000,gmv_share=1.00000000 | weekday:order_share=1.00000000,gmv_share=1.00000000 | day_type:order_share=1.00000000,gmv_share=1.00000000",each share sum = 1,1e-8,
+V12,支付先聚合到订单级且无 GMV 重复,PASS,paid_orders=96477; gmv=15422461.77,paid_orders=96477; gmv=15422461.77,0.01,"检测到 2,875 个多支付记录订单，均先聚合后连接。"
+V13,增长周期为连续、可比的 6+6 个完整月份,PASS,prior=2017-08..2018-01; recent=2018-02..2018-07,6 consecutive prior + 6 consecutive recent; global boundary months excluded,exact,全局边界月 2016-09、2018-08 未纳入。
+V14,根目录运行所需 SQL、数据库与相对路径完整,PASS,True,True,exact,脚本路径由 __file__ 定位项目根目录，不依赖本机绝对路径。
