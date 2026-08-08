@@ -1,0 +1,19 @@
+holiday_name,year,period_type,start_date,end_date,expected_day_count,observed_day_count,coverage_rate,gmv_observed,order_count_observed,average_order_value_observed,daily_average_gmv_observed,daily_average_orders_observed,gmv_change_vs_pre,order_change_vs_pre,aov_change_vs_pre,daily_gmv_change_vs_pre,daily_orders_change_vs_pre,comparison_status,data_completeness_note
+Black Friday,2016,PRE,2016/11/18,2016/11/24,7,0,0,0,0,,,,,,,,,Incomplete baseline,No observed dates
+Black Friday,2016,DURING,2016/11/25,2016/11/25,1,0,0,0,0,,,,,,,,,Observed-only; formal comparison unavailable,No observed dates
+Black Friday,2016,POST,2016/11/26,2016/12/2,7,0,0,0,0,,,,,,,,,Observed-only; formal comparison unavailable,No observed dates
+Black Friday,2017,PRE,2017/11/17,2017/11/23,7,7,1,260427.34,1446,180.1,37203.91,206.571429,,,,,,Complete baseline,Complete
+Black Friday,2017,DURING,2017/11/24,2017/11/24,1,1,1,179200.03,1176,152.38,179200.03,1176,-0.3119,-0.186722,-0.153918,3.816699,4.692946,Validated,Complete
+Black Friday,2017,POST,2017/11/25,2017/12/1,7,7,1,370662.3,2538,146.05,52951.76,362.571429,0.423285,0.755187,-0.189098,0.423285,0.755187,Validated,Complete
+Brazilian Carnival,2017,PRE,2017/2/18,2017/2/24,7,7,1,58224.95,384,151.63,8317.85,54.857143,,,,,,Complete baseline,Complete
+Brazilian Carnival,2017,DURING,2017/2/25,2017/2/28,4,4,1,31128.97,187,166.47,7782.24,46.75,-0.465367,-0.513021,0.097856,-0.064393,-0.147786,Validated,Complete
+Brazilian Carnival,2017,POST,2017/3/1,2017/3/7,7,7,1,97917.56,586,167.09,13988.22,83.714286,0.681711,0.526042,0.102009,0.681711,0.526042,Validated,Complete
+Brazilian Carnival,2018,PRE,2018/2/3,2018/2/9,7,7,1,242912.38,1627,149.3,34701.77,232.428571,,,,,,Complete baseline,Complete
+Brazilian Carnival,2018,DURING,2018/2/10,2018/2/13,4,4,1,108409.5,793,136.71,27102.38,198.25,-0.553709,-0.5126,-0.084345,-0.218992,-0.14705,Validated,Complete
+Brazilian Carnival,2018,POST,2018/2/14,2018/2/20,7,7,1,249861.71,1746,143.11,35694.53,249.428571,0.028608,0.073141,-0.041497,0.028608,0.073141,Validated,Complete
+Christmas,2016,PRE,2016/12/18,2016/12/24,7,1,0.142857,19.62,1,19.62,19.62,1,,,,,,Incomplete baseline,Partial coverage: 1/7 expected dates observed
+Christmas,2016,DURING,2016/12/25,2016/12/25,1,0,0,0,0,,,,,,,,,Observed-only; formal comparison unavailable,No observed dates
+Christmas,2016,POST,2016/12/26,2017/1/1,7,0,0,0,0,,,,,,,,,Observed-only; formal comparison unavailable,No observed dates
+Christmas,2017,PRE,2017/12/18,2017/12/24,7,7,1,153403.43,978,156.85,21914.78,139.714286,,,,,,Complete baseline,Complete
+Christmas,2017,DURING,2017/12/25,2017/12/25,1,1,1,12662.23,90,140.69,12662.23,90,-0.917458,-0.907975,-0.103043,-0.422206,-0.355828,Validated,Complete
+Christmas,2017,POST,2017/12/26,2018/1/1,7,7,1,117308.07,861,136.25,16758.3,123,-0.235297,-0.119632,-0.131383,-0.235297,-0.119632,Validated,Complete
