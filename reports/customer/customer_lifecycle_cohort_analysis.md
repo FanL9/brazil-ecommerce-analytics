@@ -62,8 +62,8 @@ customer_profile.csv详细描述：
 产出：
 - outputs/data/03_customer_analysis/
 cohort_monthly_retention.csv
-- src/customer_analysis/customer_analysis/cohort_retention_heatmap_log.py
-- src/customer_analysis/customer_analysis/cohort_retention_heatmap_log.png
+- src/analysis/customer_analysis/cohort_retention_heatmap_log.py
+- visualizations/customer/cohort_retention_heatmap_log.png
 
 观察图片大致推断：
 - 整体跨月复购留存极低：除偏移 0（首购当月）颜色很深代表 100% 留存外，只要向后推移 1 个月及以上，热力颜色迅速变浅，留存普遍落在\(10^{-2} \sim 10^{-3}\)量级，说明绝大部分用户在完成首次下单之后，不会再回来跨月下单
