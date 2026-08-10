@@ -1,0 +1,5 @@
+﻿churn_status,day_type,calendar_day_count,order_count,orders_per_calendar_day,order_share_pct,users_with_orders,paid_order_count,gmv,average_order_value
+Churned,Weekday,489,54379,111.2,76.74,52913,54378,8658040.96,159.22
+Churned,Weekend,196,16483,84.1,23.26,16171,16483,2574268.22,156.18
+Non-churned,Weekday,489,14978,30.63,77.75,14505,14978,2490675.19,166.29
+Non-churned,Weekend,196,4287,21.87,22.25,4219,4287,714063.12,166.56

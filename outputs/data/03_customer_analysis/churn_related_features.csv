@@ -1,0 +1,14 @@
+﻿feature,feature_type,churned_value,non_churned_value,difference,association_metric,association_value,interpretation,limitation
+Spend per User,Continuous,163.53,172.97,-9.439999999999998,,,Churned users show lower spend per user.,Descriptive difference only; no causal claim.
+Average Purchase Frequency,Continuous,1.0317,1.0398,-0.008099999999999996,,,Purchase frequency is slightly lower among churned users.,Observed difference is small.
+Repeat Rate,Percentage,2.88,3.47,-0.5900000000000003,,,Churned users have a lower repeat-purchase rate.,Descriptive association only.
+Average Lifecycle Days,Continuous,1.85,4.86,-3.0100000000000002,,,Churned users show shorter observed purchase lifecycles.,Lifecycle is strongly related to sparse repeat purchasing.
+Average Order Value,BRL,158.51,166.35,-7.840000000000003,,,Churned users have lower AOV.,Descriptive difference only.
+Latest Order Amount,BRL,158.96,166.96,-8.0,,,The latest order amount is lower among churned users.,Descriptive difference only.
+Average Review Score,Score 1-5,4.106,4.287,-0.18100000000000005,,,Churned users have lower average review scores.,Only orders with valid representative review scores are included.
+Average Delivery Days,Days,13.69,9.98,3.709999999999999,,,Churned users experienced longer average delivery times.,Only orders with valid delivery timestamps are included.
+Delay Rate,Percentage,8.78,4.91,3.869999999999999,,,Churned users show a higher delayed-delivery rate.,Association does not establish that delay causes churn.
+Primary Payment Type,Categorical,,,,Cramer's V,0.0526,"Payment structure differs slightly, but overall association is weak.",Mixed-payment orders use the unified primary-payment rule.
+Customer State,Categorical,,,,Cramer's V,0.0476,"Some states differ in churn rate, but overall state association is weak.",Large absolute churn counts may simply reflect market size.
+Weekday / Weekend,Categorical,,,,Cramer's V,0.0098,Weekday/weekend purchase structure has almost no association with churn.,Calendar-day counts include zero-order dates.
+First Purchase Month,Time Structure,,,,Observation-window check,,Recent cohorts cannot be directly compared with older cohorts on churn rate.,2018-05 has only 244/6506 users with full 90-day opportunity; 2018-06 and 2018-07 have none.
