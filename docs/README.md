@@ -1,6 +1,7 @@
 | 日期 | 修改人 | 版本号 | 备注 |
 |---|---|---|---|
 | 2026-08-10 | FL | v1.0 | docs/README.md |
+| 2026-08-10 | FL | v1.1 | 新增阶段四品类公共层入口 |
 
 # 文档目录索引
 
@@ -8,7 +9,7 @@
 
 ## 建议阅读顺序
 
-1. [`unified_analysis_standards.md`](unified_analysis_standards.md)：阶段一至阶段三的统一口径入口。若其他说明、代码或旧报告与其冲突，以该文件为准。
+1. [`unified_analysis_standards.md`](unified_analysis_standards.md)：阶段一至阶段四的统一口径入口。若其他说明、代码或旧报告与其冲突，以该文件为准。
 2. 根据所处阶段查看对应的指标定义或公共数据层字典。
 3. 需要核对原始字段和表连接关系时，再查看数据字典、表关系和 ER 图。
 
@@ -30,6 +31,7 @@
 | 阶段二：整体业务大盘诊断 | 已交付 | [`monthly_kpi_dictionary.md`](monthly_kpi_dictionary.md) | 月度 KPI 公共层的字段、粒度、计算逻辑和质量校验规则 |
 | 阶段三：用户行为与价值分析 | 已交付（公共层与 RFM） | [`customer_common_layer_dictionary.md`](customer_common_layer_dictionary.md) | 订单级 `customer_order_base` 和用户级 `customer_profile` 公共层说明 |
 | 阶段三：用户行为与价值分析 | 已交付（RFM） | [`rfm_scoring_rules.md`](rfm_scoring_rules.md) | RFM 评分、同值同分及五类互斥分层规则 |
+| 阶段四：商品品类结构分析 | 已交付（公共层） | [`category_analysis_dictionary.md`](category_analysis_dictionary.md) | 商品级 `category_item_base` 和订单—品类级 `category_order_base` 公共层说明 |
 | 跨阶段分析方法 | 待补充 | [`methodology/analysis_methodology.md`](methodology/analysis_methodology.md) | 当前为空文件，仅作方法论文档占位 |
 
 ## 阶段二特别说明

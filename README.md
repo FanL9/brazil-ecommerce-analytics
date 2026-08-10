@@ -1,3 +1,7 @@
+| 日期 | 修改人 | 版本号 | 备注 |
+|---|---|---|---|
+| 2026-08-10 | FL | v1.0 | 同步阶段四可执行范围，并新增品类公共数据层重跑说明 |
+
 # 巴西电商平台数据分析
 
 ## 一、项目核心定位
@@ -36,11 +40,10 @@
 
 ### 阶段四：商品品类结构分析
 
-1. 品类销售表现分析：统计各品类的GMV、订单量、平均单价、销售占比，采用帕累托法则识别头部品类（贡献80%GMV的20%品类）和长尾品类。
-2. 品类盈利能力分析：计算各品类的毛利率（商品售价-商品成本-运费）、运费占比、客单件数，对比不同品类的利润空间，识别高毛利潜力品类。
+1. 品类销售表现分析：统计各品类的商品销售额、订单量、商品件数、平均商品单价和销售额占比，通过帕累托分析识别累计贡献80%销售额所需的实际品类数量和比例。
+2. 品类增长趋势分析：计算各品类的月复合增长率（CMGR），对比平台整体增速，识别明星、潜力、稳定、衰退和新兴品类。
 3. 品类用户满意度分析：结合评论数据，计算各品类的平均评分、1星差评率、差评关键词词云，定位用户投诉集中的问题品类。
-4. 品类增长趋势分析：计算各品类的月度复合增长率（CAGR），对比行业平均增速，识别快速增长的明星品类和衰退品类。
-5. 商品关联规则挖掘：使用Apriori算法挖掘频繁购买的商品组合，计算支持度、置信度和提升度，输出Top20交叉销售商品组合清单。
+4. 商品关联规则挖掘：使用Apriori算法挖掘频繁购买的商品组合，计算支持度、置信度和提升度；规则不足20条时如实输出实际数量，并以品类级规则补充。
 
 ### 阶段五：物流服务与用户体验分析
 
@@ -184,7 +187,17 @@ RFM 分析依赖阶段三用户画像脚本创建的订单级 `customer_order_ba
 
 该脚本可重复执行，所有路径均基于项目根目录解析。默认使用 `database/brazil_ecommerce.db`；如需指定其他数据库，可增加 `--database <项目相对路径>`。
 
-## 十一、打开交互式可视化面板
+## 十一、创建阶段四品类公共数据层
+
+阶段四 Member 1 的公共层包括商品级 `category_item_base` 和订单—品类级 `category_order_base`。数据库构建完成后，从项目根目录执行：
+
+```powershell
+python -c "from pathlib import Path; import sqlite3; c=sqlite3.connect(r'database/brazil_ecommerce.db'); c.executescript(Path(r'sql/02_data_cleaning/data_cleaning_rules.sql').read_text(encoding='utf-8-sig')); c.executescript(Path(r'sql/06_product_analysis/00_category_common_layer.sql').read_text(encoding='utf-8-sig')); c.close()"
+```
+
+该命令可重复执行，会重建阶段四公共层，不修改原始表。字段、品类映射规则和质量校验请参见 [`docs/category_analysis_dictionary.md`](docs/category_analysis_dictionary.md)；阶段四完整口径以 [`docs/unified_analysis_standards.md`](docs/unified_analysis_standards.md) 为准。
+
+## 十二、打开交互式可视化面板
 
 在项目根目录打开 PowerShell，激活虚拟环境并安装依赖：
 
