@@ -1,4 +1,4 @@
-df = pd.read_csv('monthly_growth_rates.csv所在路径')
+df = pd.read_csv('output/data/02_business_overview/monthly_growth_rates.csv')
 import pandas as pd
 import matplotlib.pyplot as plt
 
