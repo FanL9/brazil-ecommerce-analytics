@@ -6,8 +6,11 @@
    - 订单量环比和同比增长率；
    - 客单价环比和同比增长率；
    - 新增用户、活跃用户环比和同比增长率。
+   
    新增用户：期间内第一次出现购买记录的用户
+   
    活跃用户：一个月内有一次及以上购买记录的用户
+   
 所得计算结果如下：
 
 | month   | gmv_mom  | gmv_yoy    | order_count_mom | order_count_yoy | aov_mom  | aov_yoy | new_users_mom | new_users_yoy | active_users_mom | active_users_yoy |
@@ -38,23 +41,28 @@
 | 2018-08 | -0.0413  | 0.5254     | 0.0312          | 0.5147          | -0.0703  | 0.0071  | 0.0328        | 0.5144       | 0.0344           | 0.5338           |
 
 2. 分析GMV环比增长率为正的月份数据来拆解GMV增长来自订单量变化还是客单价变化
+
 GMV = 订单数量 (order_count) × 客单价 (average_order_value)
+
 GMV环比增长率为正有4种原因：
 - 双驱动：订单数量上涨 + 客单价同时上涨，两者一起推动 GMV 走高
 - 订单量驱动：只有订单数量增加，客单价相比上月没有上涨，靠更多订单拉高 GMV
 - 客单价驱动：只有客单价提升，订单数量没有上涨，靠每单卖得更贵拉高 GMV
 - 混合抵消驱动：订单数、客单价一个涨一个跌，互相抵消之后，整体 GMV 依然实现环比上涨
+  
 结果：多数情况是订单量驱动，少数情况是双驱动
 
-3. 识别增长最快、下降最大和波动异常的月份
+3. 识别增长最快、下降最大和波动异常的月份（GMV环比增长率）
+
 波动异常：统计学 2‑σ（2 倍标准差）准则识别
-在未除去异常月份下：
-            月份     GMV环比变化率
-- 下降最大：2016-12， -0.9996
-- 增长最快：2017-01， 6499.7987
-- 波动异常：2017-01， 6499.7987
+
+在未除去异常月份下：    
+- 下降最大：2016-12， -0.9996(GMV环比变化率)
+- 增长最快：2017-01， 6499.7987(GMV环比变化率)
+- 波动异常：2017-01， 6499.7987(GMV环比变化率)
 
 4. 排除数据覆盖不完整导致的伪异常
+   
 排除标准：
 - 月份订单数 order_count < 1000
 - GMV 环比增长率＞5 或者＜‑5，标记为极端增长波动
@@ -68,17 +76,19 @@ GMV环比增长率为正有4种原因：
 | 2017-01 | 6499.7987      | 750                 | order_count_too_low, extreme_increase |
 
 5. 判断增长是否稳定、是否具有持续性
-排除月份2016-09，2016-10，2016-12，2017-01
-计算std=0.3153，较为稳定
+- 排除月份2016-09，2016-10，2016-12，2017-01
+- 计算GMV环比增长率std=0.3153，较为稳定
 
 ## 第二项节假日与季节性分析
+
 数据仅覆盖约两年，只能描述相关性和季节性迹象，不能证明因果关系或稳定季节规律
 
 1. 节假日选取：
 - 选取Black Friday、Christmas、Brazilian Carnival
 
 2. 比较节假日月份与普通月份的GMV、订单量和客单价
-- 其他月份已排除2016-09，2016-10，2016-12，2017-01
+- 月份已排除2016-09，2016-10，2016-12，2017-01
+
 结果如下：
 
 | holiday_month | gmv        | order_count | aov    | avg_gmv_other_months | avg_order_count_other_months | avg_aov_other_months |
@@ -89,13 +99,14 @@ GMV环比增长率为正有4种原因：
 | 2018‑02       | 966510.88  | 6555        | 147.44 | 672724.70            | 4022.62                      | 158.64               |
 - 节日月的GMV，除2017-02，其余均高于均值
 - 节日月的订单量，除2017-02，其余均高于均值
-- 节日月的客单价，浮动较大，高于，等于，少于均值的情况均有出现
+- 节日月的客单价，浮动较大，高于，少于均值的情况均有出现
 
 3. 计算节假日前、节假日期间和节假日后的变化幅度
 - 选取节假日前7日，节假日中，节假日后7日数据对比
-- 通过数据完整性分析，其中只有四个时段可用2017/11/17-2017/12/1，
-2017/2/18-2017/3/7，2018/2/3-2018/2/20，2017/12/18-2018/1/1
+- 通过数据完整性分析，其中只有四个时段可用: 2017/2/18-2017/3/7，2017/11/17-2017/12/1，2017/12/18-2018/1/1，2018/2/3-2018/2/20
+
 通过计算得 outputs/data/02_business_overview/holiday_comparison.csv
+
 结果如下：
 - 2017/2/18-2017/3/7
 
@@ -131,7 +142,9 @@ GMV环比增长率为正有4种原因：
 - 三者变化在不同节日的表现皆不同，black friday的平均订单量，平均GMV暴涨，平均单价下降；而在Brazilian Carnival和Christmas，其平均订单量，GMV和单价多数下降
 
 4. 检查节后是否出现明显回落
+   
 根据 outputs/data/02_business_overview/holiday_comparison.csv
+
 - 2017/11/17-2017/12/1 Black Friday：
 GMV有非常明显的节后回落：从爆炸式增长大幅降温，但POST依然高于PRE基准，没有跌到基准线以下
 
@@ -145,7 +158,7 @@ GMV不降反升，节后效应很强
 GMV节后修复，回到接近基准水平，无下降
 
 5. 比较2017年和2018年相同月份，识别可能重复的季节性迹象
-- 通过python(src/analysis/business_overview/growth_quality.py和src/analysis/business_overview/seasonality_analysis.py)作图得到GMV变化图和GMV环比增长率变化图（outputs/figures/02_business_overview/monthly_growth_rate.png和outputs/figures/02_business_overview/seasonal_pattern.png）
+- 通过python(src/analysis/business_overview/growth_quality.py和src/analysis/business_overview/seasonality_analysis.py)作图得到GMV变化图和GMV环比增长率变化图（visualization/business_overview/monthly_growth_rate.png和visualization/business_overview/seasonal_pattern.png）
 - 异常月份不参与制图（2016‑09，2016‑10，2016‑12，2017‑01）
 - 观察两图并无明显季节性迹象
 
