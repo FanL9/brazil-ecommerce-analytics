@@ -78,9 +78,9 @@ cohort_monthly_retention.csv
 产出：
 - outputs/data/03_customer_analysis/short_term_repeat_retention.csv
 
-| total_users | obs_7d | repeat_7d | repeat_rate_7d | obs_30d | repeat_30d | repeat_rate_30d | obs_90d | repeat_90d | repeat_rate_90d |
-|---|---|---|---|---|---|---|---|---|---|---|
-| 93358 | 92801 | 1015 | 0.0109 | 86772 | 1412 | 0.0163 | 75320 | 1907 | 0.0253 |
+|total_users|obs_7d|repeat_7d|repeat_rate_7d|obs_30d|repeat_30d|repeat_rate_30d|obs_90d|repeat_90d|repeat_rate_90d|
+|---|---|---|---|---|---|---|---|---|---|
+|93358|92801|1015|0.0109|86772|1412|0.0163|75320|1907|0.0253|
 
 7/30/90 日短期留存定义：
 - 起点为用户第一笔有效订单的购买时间。
