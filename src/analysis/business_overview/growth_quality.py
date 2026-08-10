@@ -1,4 +1,4 @@
-df = pd.read_csv('output/data/02_business_overview/monthly_growth_rates.csv')
+df = pd.read_csv('outputs/data/02_business_overview/monthly_growth_rates.csv')
 import pandas as pd
 import matplotlib.pyplot as plt
 
