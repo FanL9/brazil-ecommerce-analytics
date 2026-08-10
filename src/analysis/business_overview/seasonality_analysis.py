@@ -1,6 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-file_path = r"monthly_kpi.csv的所在路径"
+file_path = r"outputs/data/02_business_overview/monthly_kpi.csv"
 df = pd.read_csv(file_path)
 
 df["month"] = pd.to_datetime(df["month"])
