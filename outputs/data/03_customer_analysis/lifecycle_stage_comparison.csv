@@ -1,0 +1,6 @@
+"lifecycle_stage","user_count","user_percentage","order_count","gmv","avg_customer_spend","avg_order_value","avg_purchase_frequency","repeat_users","repeat_rate","avg_lifecycle_days","avg_recency_days"
+Dormant Customer,74899,0.8023,77304,12308397.4,164.33,159.22,1.03,2187,0.0292,2.06,289.42
+Early Customer,11298,0.121,11298,1894571.12,167.69,167.69,1.0,0,0.0,0.0,64.12
+Growing Customer,391,0.0042,807,122755.35,313.95,152.11,2.06,391,1.0,55.57,50.64
+Mature Customer,223,0.0024,522,75040.51,336.5,143.76,2.34,223,1.0,318.58,48.31
+New Customer,6547,0.0701,6547,1021697.39,156.06,156.06,1.0,0,0.0,0.0,22.22
