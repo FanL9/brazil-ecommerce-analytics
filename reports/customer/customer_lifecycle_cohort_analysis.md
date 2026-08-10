@@ -11,6 +11,7 @@
    - 累计有效订单数；
    - 累计GMV；
    - 用户生命周期长度。
+
 产出：
 - outputs/data/03_customer_analysis/customer_profile.csv 
 - outputs/data/03_customer_analysis/customer_order_base.csv
@@ -57,6 +58,7 @@ customer_profile.csv详细描述：
    - 各月活跃用户数；
    - 各月留存率；
    - 不同首购月份的留存差异。
+
 产出：
 - outputs/data/03_customer_analysis/
 cohort_monthly_retention.csv
@@ -75,6 +77,7 @@ cohort_monthly_retention.csv
    - 90日内再次购买比例；
    - 完整观察窗口用户数；
    - 因观察窗口不足而排除的用户数。
+
 产出：
 - outputs/data/03_customer_analysis/short_term_repeat_retention.csv
 
@@ -100,6 +103,7 @@ cohort_monthly_retention.csv
    - 成长用户；
    - 成熟用户；
    - 沉默用户。
+
 产出：
 - outputs/data/03_customer_analysis/customer_lifecycle_segment.csv
 
@@ -124,6 +128,7 @@ cohort_monthly_retention.csv
    - 复购率；
    - 平均生命周期长度；
    - 平均最近消费间隔。
+
 产出：
 - outputs/data/03_customer_analysis/lifecycle_stage_comparison.csv
 
