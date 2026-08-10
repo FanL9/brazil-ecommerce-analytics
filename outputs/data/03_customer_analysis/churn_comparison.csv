@@ -1,0 +1,3 @@
+﻿churn_status,user_count,user_share_pct,total_valid_orders,total_paid_orders,total_gmv,spend_per_user,avg_purchase_frequency,repeat_users,repeat_rate_pct,avg_lifecycle_days,average_order_value,users_with_latest_order_amount,avg_latest_order_amount,order_count,review_order_count,excluded_review_orders,avg_review_score,delivery_order_count,excluded_delivery_orders,avg_delivery_days,delay_eligible_orders,excluded_delay_orders,delayed_orders,delay_rate_pct
+Churned,68686,78.76,70862,70861,11232309.18,163.53,1.0317,1979,2.88,1.85,158.51,68686,158.96,70862,70329,533,4.106,70860,2,13.69,70860,2,6220,8.78
+Non-churned,18528,21.24,19265,19265,3204738.31,172.97,1.0398,642,3.47,4.86,166.35,18528,166.96,19265,19173,92,4.287,19259,6,9.98,19259,6,946,4.91

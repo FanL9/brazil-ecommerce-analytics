@@ -1,0 +1,9 @@
+﻿churn_status,primary_payment_type,order_count,order_share_pct,users_using_payment_type
+Churned,credit_card,53291,75.2,51751
+Churned,boleto,14493,20.45,14135
+Churned,voucher,2329,3.29,2269
+Churned,debit_card,748,1.06,741
+Non-churned,credit_card,14682,76.21,14158
+Non-churned,boleto,3579,18.58,3491
+Non-churned,voucher,538,2.79,529
+Non-churned,debit_card,466,2.42,461

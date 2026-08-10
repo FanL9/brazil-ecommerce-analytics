@@ -1,0 +1,31 @@
+﻿city_state,user_count,churned_users,non_churned_users,churn_rate_pct,user_share_pct,churn_rate_vs_overall_pct_point
+sao paulo | SP,13288,10081,3207,75.87,15.24,-2.89
+rio de janeiro | RJ,5922,4800,1122,81.05,6.79,2.3
+belo horizonte | MG,2413,1900,513,78.74,2.77,-0.02
+brasilia | DF,1868,1430,438,76.55,2.14,-2.2
+curitiba | PR,1331,1052,279,79.04,1.53,0.28
+campinas | SP,1262,983,279,77.89,1.45,-0.86
+porto alegre | RS,1213,993,220,81.86,1.39,3.11
+salvador | BA,1093,849,244,77.68,1.25,-1.08
+guarulhos | SP,1016,739,277,72.74,1.16,-6.02
+sao bernardo do campo | SP,811,640,171,78.91,0.93,0.16
+niteroi | RJ,736,566,170,76.9,0.84,-1.85
+santo andre | SP,695,523,172,75.25,0.8,-3.5
+osasco | SP,634,491,143,77.44,0.73,-1.31
+santos | SP,611,459,152,75.12,0.7,-3.63
+goiania | GO,598,466,132,77.93,0.69,-0.83
+sao jose dos campos | SP,594,445,149,74.92,0.68,-3.84
+fortaleza | CE,584,471,113,80.65,0.67,1.89
+sorocaba | SP,539,408,131,75.7,0.62,-3.06
+recife | PE,534,419,115,78.46,0.61,-0.29
+florianopolis | SC,504,403,101,79.96,0.58,1.2
+jundiai | SP,485,371,114,76.49,0.56,-2.26
+ribeirao preto | SP,446,343,103,76.91,0.51,-1.85
+belem | PA,396,318,78,80.3,0.45,1.55
+nova iguacu | RJ,394,314,80,79.7,0.45,0.94
+juiz de fora | MG,384,311,73,80.99,0.44,2.23
+contagem | MG,378,302,76,79.89,0.43,1.14
+barueri | SP,373,278,95,74.53,0.43,-4.22
+sao goncalo | RJ,360,293,67,81.39,0.41,2.63
+vitoria | ES,342,266,76,77.78,0.39,-0.98
+uberlandia | MG,338,275,63,81.36,0.39,2.61
