@@ -1,0 +1,7 @@
+﻿group,main_payment_type,orders,order_share
+all_users,boleto,18072,0.2005192730177751
+all_users,credit_card,67973,0.7541996760091427
+all_users,debit_card,1214,0.013470030845704903
+all_users,voucher,2867,0.03181102012737723
+high_value_users,boleto,2,0.05714285714285714
+high_value_users,credit_card,33,0.9428571428571428

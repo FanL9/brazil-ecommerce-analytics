@@ -1,0 +1,7 @@
+﻿group,payment_type,payment_gmv,gmv_share
+all_users,boleto,2629123.86,0.1821095249441477
+all_users,credit_card,11319158.63,0.7840355611381313
+all_users,debit_card,163030.6,0.01129251670834533
+all_users,voucher,325734.4,0.02256239720937567
+high_value_users,boleto,383.27,0.10182572702299161
+high_value_users,credit_card,3380.71,0.8981742729770084
