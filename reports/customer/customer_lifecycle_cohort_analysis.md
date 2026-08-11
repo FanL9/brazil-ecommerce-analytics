@@ -13,8 +13,9 @@
    - 用户生命周期长度。
 
 产出：
-- outputs/data/03_customer_analysis/customer_profile.csv 
-- outputs/data/03_customer_analysis/customer_order_base.csv
+- ['outputs/data/03_customer_analysis/customer_profile.csv '](outputs/data/03_customer_analysis/customer_profile.csv) 
+- ['outputs/data/03_customer_analysis/customer_order_base.csv
+'](outputs/data/03_customer_analysis/customer_order_base.csv)
 
 customer_order_base.csv详细描述：
 - customer_unique_id：TEXT，用户全局唯一标识，原始数据集用户唯一编号
@@ -47,7 +48,7 @@ customer_profile.csv详细描述：
 - customer_city：TEXT，用户收货所在城市名称
 
 ---
-根据sql/05_customer_analysis/03_customer_lifecycle_cohort_analysis.sql来制作以下产出的csv
+根据['sql/05_customer_analysis/03_customer_lifecycle_cohort_analysis.sql'](sql/05_customer_analysis/03_customer_lifecycle_cohort_analysis.sql)来制作以下产出的csv
 ---
 
 ## 2. 建立月度Cohort
@@ -60,13 +61,12 @@ customer_profile.csv详细描述：
    - 不同首购月份的留存差异。
 
 产出：
-- outputs/data/03_customer_analysis/
-cohort_monthly_retention.csv
-- src/analysis/customer_analysis/cohort_retention_heatmap_log.py
-- visualizations/customer/cohort_retention_heatmap_log.png
+- ['outputs/data/03_customer_analysis/cohort_monthly_retention.csv'](outputs/data/03_customer_analysis/cohort_monthly_retention.csv)
+- ['src/analysis/customer_analysis/cohort_retention_heatmap_log.py'](src/analysis/customer_analysis/cohort_retention_heatmap_log.py)
+- ['visualizations/customer/cohort_retention_heatmap_log.png'](visualizations/customer/cohort_retention_heatmap_log.png)
 
 观察图片大致推断：
-- 整体跨月复购留存极低：除偏移 0（首购当月）颜色很深代表 100% 留存外，只要向后推移 1 个月及以上，热力颜色迅速变浅，留存普遍落在\(10^{-2} \sim 10^{-3}\)量级，说明绝大部分用户在完成首次下单之后，不会再回来跨月下单
+- 整体跨月复购留存极低：除偏移 0（首购当月）颜色很深代表 100% 留存外，只要向后推移 1 个月及以上，热力颜色迅速变浅，留存普遍落在 \(10^{-2}\sim10^{-3}\) 量级，说明绝大部分用户在完成首次下单之后，不会再回来跨月下单
 - 没有明显随时间改善的留存趋势：对比不同首购队列（Y 轴各个月份），不管是 2016 年底、2017 全年还是 2018 年的新用户队列，后续月份留存都维持在很低水平，后期新增用户并没有表现出更好的用户忠诚度
 - 少数队列存在微弱的长期活跃信号：少数单元格存在淡淡的蓝色，代表还是存在极少量用户，在首购之后很久依然会回来下单，但这部分用户占整体队列的比例微乎其微
 - 业务推断：该平台用户大多属于一次性消费用户，平台难以把新用户转化为长期复购客户，用户生命周期价值主要由首次订单贡献
@@ -79,7 +79,7 @@ cohort_monthly_retention.csv
    - 因观察窗口不足而排除的用户数。
 
 产出：
-- outputs/data/03_customer_analysis/short_term_repeat_retention.csv
+- ['outputs/data/03_customer_analysis/short_term_repeat_retention.csv'](outputs/data/03_customer_analysis/short_term_repeat_retention.csv)
 
 |total_users|obs_7d|repeat_7d|repeat_rate_7d|obs_30d|repeat_30d|repeat_rate_30d|obs_90d|repeat_90d|repeat_rate_90d|
 |---|---|---|---|---|---|---|---|---|---|
@@ -105,7 +105,8 @@ cohort_monthly_retention.csv
    - 沉默用户。
 
 产出：
-- outputs/data/03_customer_analysis/customer_lifecycle_segment.csv
+- ['outputs/data/03_customer_analysis/customer_lifecycle_segment.csv
+'](outputs/data/03_customer_analysis/customer_lifecycle_segment.csv)
 
 定义：
 - 用户生命周期长度：截止日前最近一笔有效订单日期减首次有效订单日期，单位为天；单次购买用户为 0 天
@@ -130,7 +131,7 @@ cohort_monthly_retention.csv
    - 平均最近消费间隔。
 
 产出：
-- outputs/data/03_customer_analysis/lifecycle_stage_comparison.csv
+- ['outputs/data/03_customer_analysis/lifecycle_stage_comparison.csv'](outputs/data/03_customer_analysis/lifecycle_stage_comparison.csv)
 
 |lifecycle_stage|user_count|user_percentage|order_count|gmv|avg_customer_spend|avg_order_value|avg_purchase_frequency|repeat_users|repeat_rate|avg_lifecycle_days|avg_recency_days|
 |---|---|---|---|---|---|---|---|---|---|---|---|
