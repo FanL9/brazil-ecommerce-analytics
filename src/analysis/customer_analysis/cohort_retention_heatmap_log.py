@@ -7,7 +7,7 @@ from matplotlib.colors import LogNorm
 # ==========================
 
 df = pd.read_csv(
-    r"outputs/data/03_customer_analysis/cohort_monthly_retention.csv"
+    r"outputs\data\03_customer_analysis\cohort_monthly_retention.csv"
     )
 
 # ==========================
