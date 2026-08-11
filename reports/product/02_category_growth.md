@@ -5,7 +5,7 @@
 # 品类增长趋势分析（阶段四 Member 2）
 
 ## 1. 复用范围
-- ['outputs/data/06_product_analysis/category_monthly_sales_base.csv'] (outputs/data/06_product_analysis/category_monthly_sales_base.csv)
+- ['outputs/data/06_product_analysis/category_monthly_sales_base.csv'](outputs/data/06_product_analysis/category_monthly_sales_base.csv)
 - ['outputs/data/06_product_analysis/category_sales_base.csv'](outputs/data/06_product_analysis/category_sales_base.csv)
 
 ---
@@ -53,6 +53,8 @@
 - 稳定品类：CMGR ≥ 0，且未达到明星或潜力品类增长标准；
 - 衰退品类：CMGR < 0；
 - 新兴品类：观察期内首次出现销售，且无法计算有效 CMGR 的品类。
+
+产出：['outputs/data/06_product_analysis/category_classification.csv'](outputs/data/06_product_analysis/category_classification.csv)
 
 描述：
 
