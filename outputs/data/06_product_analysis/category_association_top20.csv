@@ -1,0 +1,2 @@
+﻿rule_rank,category_a,category_b,antecedent_orders,consequent_orders,cooccurrence_orders,support,confidence,lift
+1,home_confort,bed_bath_table,392,9272,43,0.0004456974647069798,0.1096938775510204,1.1413983949921642

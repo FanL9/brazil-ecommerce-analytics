@@ -1,4 +1,4 @@
-pandas
+﻿pandas
 numpy
 matplotlib
 seaborn
@@ -7,3 +7,4 @@ jupyter
 openpyxl
 streamlit
 altair
+wordcloud
