@@ -9,7 +9,7 @@ INPUT_PATH = Path(
 )
 
 OUTPUT_DIR = Path(
-    "outputs/figures/06_product_analysis"
+    "visualizations/product"
 )
 
 OUTPUT_PATH = OUTPUT_DIR / "category_satisfaction_matrix.png"

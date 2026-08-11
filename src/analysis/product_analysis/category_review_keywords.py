@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import re
 import sqlite3
@@ -123,7 +123,7 @@ def generate_wordclouds(result: pd.DataFrame) -> None:
     ]
 
     output_dir = Path(
-        "outputs/figures/06_product_analysis"
+        "visualizations/product"
     )
     output_dir.mkdir(parents=True, exist_ok=True)
 
