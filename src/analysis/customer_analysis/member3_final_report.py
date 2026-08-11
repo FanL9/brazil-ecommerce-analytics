@@ -1408,15 +1408,20 @@ def main():
 
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
 
-    # Preserve the pre-final report only once.
+    # Preserve the incomplete pre-final report only once.
     if REPORT_PATH.exists() and not BACKUP_PATH.exists():
-        BACKUP_PATH.write_bytes(REPORT_PATH.read_bytes())
-        print(f"Backup created: {BACKUP_PATH}")
+        existing_report = REPORT_PATH.read_text(encoding="utf-8")
+        final_title = "# 阶段三 Member 3：流失用户分析与高价值用户画像报告"
+
+        if final_title not in existing_report:
+            BACKUP_PATH.write_bytes(REPORT_PATH.read_bytes())
+            print(f"Backup created: {BACKUP_PATH}")
+        else:
+            print("Existing report is already final; backup skipped.")
     elif BACKUP_PATH.exists():
         print(f"Backup already exists: {BACKUP_PATH}")
     else:
         print("No pre-final report found; backup skipped.")
-
     data = load_inputs()
     validate_inputs(data)
 
