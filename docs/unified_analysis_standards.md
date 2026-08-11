@@ -2,6 +2,7 @@
 |---|---|---|---|
 | 2026-08-10 | FL | v2.0 | 适用范围扩展至阶段四，新增品类公共层、销售额、运费、增长、满意度及关联规则口径 |
 | 2026-08-10 | FL | v2.1 | 按更新分工取消经济性代理，无法映射英文的品类统一标记为 unknown，并收敛公共层字段 |
+| 2026-08-11 | FL | v2.2 | 补充阶段四品类总体与月度销售汇总基础层 |
 
 # 阶段一至阶段四全团队统一分析口径
 
@@ -254,11 +255,13 @@
 - 阶段四正式分析仅使用 `order_status = 'delivered'` 的订单；公共层保留全部观察期数据，具体分析再按任务声明时间窗口。
 - `category_item_base` 粒度固定为 `order_id + order_item_id`，一行一个订单商品，禁止因连接评论或支付明细产生重复。
 - `category_order_base` 粒度固定为 `order_id + category_name`，同一订单包含多个品类时，每个“订单—品类”组合只保留一行。
+- `category_sales_base` 粒度固定为 `category_name`，统一提供全观察期销售额、占比、品类订单量、商品件数、平均商品单价、每单件数和稳定销售排名。
+- `category_monthly_sales_base` 粒度固定为 `purchase_month + category_name`，只保留实际发生销售的组合，不补 0 行，也不预先写入增长率或增长分类。
 - 品类名称使用 `product_category_name_translation.product_category_name_english`；原始品类缺失、翻译表没有匹配记录或英文翻译为空时，统一标记为 `unknown`。
 - `unknown` 必须保留在商品销售额、订单量、商品件数和占比分母中，不得为提高数据完整率而删除。
 - 业务时间统一使用 `orders.order_purchase_timestamp`，月份统一为 `YYYY-MM`。
 - 评论分析必须先按订单选出一条代表评论，再连接至订单—品类层；不得直接把评论明细连接到商品明细。
-- 两个公共层的字段、构建 SQL 和质量校验见 `docs/category_analysis_dictionary.md` 与 `sql/06_product_analysis/00_category_common_layer.sql`。
+- 四个公共层的字段、构建 SQL 和质量校验见 `docs/category_analysis_dictionary.md` 与 `sql/06_product_analysis/category_order_base.sql`。
 
 ### 5.2 商品销售表现与数据可用性边界
 

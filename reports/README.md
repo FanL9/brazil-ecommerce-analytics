@@ -2,6 +2,8 @@
 |---|---|---|---|
 | 2026-08-10 | FL | v1.0 | 新增报告目录索引，并标注阶段二最终报告优先级 |
 | 2026-08-11 | hong shucham | v1.1 | 新增阶段三member2报告目录索引 |
+| 2026-08-11 | FL | v1.2 | 区分阶段四公共汇总层与分析报告交付状态 |
+
 # 报告目录索引
 
 本目录汇总各阶段的分析报告。阅读报告前，建议先查看 [`docs/unified_analysis_standards.md`](../docs/unified_analysis_standards.md)，确认有效订单、GMV、用户、时间窗口等统一口径。
@@ -19,7 +21,7 @@
 | 阶段一：数据治理与基础建设 | 已交付 | [`data_quality/data_quality_report.md`](data_quality/data_quality_report.md) | 数据质量检查、异常分类及可用范围；指标定义详见 [`docs/metric_definition.md`](../docs/metric_definition.md) |
 | 阶段二：整体业务大盘诊断 | **最终版已交付** | **[`阶段二最终报告`](business_analysis/02_business_overview_report.md)** | 趋势、增长质量、节假日与季节性、业务结构、核心问题及策略测算的最终整合版本 |
 | 阶段三：用户行为与价值分析 | 部分交付 | [`customer/customer_analysis_report.md`](customer/customer_analysis_report.md)、[`customer/rfm_customer_value_report.md`](customer/rfm_customer_value_report.md) [`customer/customer_lifecycle_cohort_analysis.md`](customer/customer_lifecycle_cohort_analysis.md)| 当前覆盖 Member 1 的用户画像、公共数据层和 RFM 用户价值分析；Member 2 部分已完成，完成用户生命周期与 Cohort 留存分析，包括留存指标计算、短期复购分析、生命周期分层及用户价值对比。|
-| 阶段四：商品品类结构分析 | 待交付 | [`product/product_analysis_report.md`](product/product_analysis_report.md) | 当前文件为空，仅作目录占位 |
+| 阶段四：商品品类结构分析 | 公共汇总层已交付，报告待交付 | [`product/product_analysis_report.md`](product/product_analysis_report.md) | 品类总体与月份—品类汇总基础表已交付，详见 [`docs/category_analysis_dictionary.md`](../docs/category_analysis_dictionary.md)；当前报告文件仍为空，仅作目录占位 |
 | 阶段五：物流服务与用户体验分析 | 待交付 | [`logistics/logistics_analysis_report.md`](logistics/logistics_analysis_report.md) | 当前文件为空，仅作目录占位 |
 | 阶段六：问题总结与策略输出 | 待交付 | [`strategy/strategy_report.md`](strategy/strategy_report.md)、[`final/final_report.md`](final/final_report.md) | 当前文件为空，分别预留策略报告和全项目最终报告位置 |
 

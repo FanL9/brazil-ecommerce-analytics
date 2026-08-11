@@ -1,6 +1,7 @@
 | 日期 | 修改人 | 版本号 | 备注 |
 |---|---|---|---|
 | 2026-08-10 | FL | v1.0 | 同步阶段四可执行范围，并新增品类公共数据层重跑说明 |
+| 2026-08-11 | FL | v1.1 | 补充阶段四品类汇总基础表及可重复导出入口 |
 
 # 巴西电商平台数据分析
 
@@ -189,13 +190,18 @@ RFM 分析依赖阶段三用户画像脚本创建的订单级 `customer_order_ba
 
 ## 十一、创建阶段四品类公共数据层
 
-阶段四 Member 1 的公共层包括商品级 `category_item_base` 和订单—品类级 `category_order_base`。数据库构建完成后，从项目根目录执行：
+阶段四公共层包括商品级 `category_item_base`、订单—品类级 `category_order_base`、品类级 `category_sales_base` 和月份—品类级 `category_monthly_sales_base`。数据库构建完成后，从项目根目录执行：
 
 ```powershell
-python -c "from pathlib import Path; import sqlite3; c=sqlite3.connect(r'database/brazil_ecommerce.db'); c.executescript(Path(r'sql/02_data_cleaning/data_cleaning_rules.sql').read_text(encoding='utf-8-sig')); c.executescript(Path(r'sql/06_product_analysis/00_category_common_layer.sql').read_text(encoding='utf-8-sig')); c.close()"
+python src\analysis\product_analysis\category_common_layer.py
 ```
 
-该命令可重复执行，会重建阶段四公共层，不修改原始表。字段、品类映射规则和质量校验请参见 [`docs/category_analysis_dictionary.md`](docs/category_analysis_dictionary.md)；阶段四完整口径以 [`docs/unified_analysis_standards.md`](docs/unified_analysis_standards.md) 为准。
+该脚本可重复执行，会创建清洗 View、重建四张阶段四公共表、运行口径回算并导出以下 UTF-8 BOM CSV，不修改原始表：
+
+- `outputs/data/06_product_analysis/category_sales_base.csv`
+- `outputs/data/06_product_analysis/category_monthly_sales_base.csv`
+
+字段、品类映射规则和质量校验请参见 [`docs/category_analysis_dictionary.md`](docs/category_analysis_dictionary.md)；阶段四完整口径以 [`docs/unified_analysis_standards.md`](docs/unified_analysis_standards.md) 为准。
 
 ## 十二、打开交互式可视化面板
 
