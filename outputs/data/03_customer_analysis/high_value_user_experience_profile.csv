@@ -1,0 +1,3 @@
+﻿group,users,orders,reviewed_orders,excluded_review_orders,review_coverage,average_review_score,low_score_definition,low_score_orders,low_score_order_share,positive_review_orders,positive_review_rate,delivery_orders,excluded_delivery_orders,average_delivery_days,delay_eligible_orders,delayed_orders,delay_rate
+all_users,87214,90127,89502,625,0.9930653411297391,4.144991173381601,representative_review_score == 1,8906,0.09950615628701034,70358,0.7861053384281915,90119,8,12.89828248698326,90119,7166,0.07951708296807554
+high_value_users,4,35,35,0,1.0,4.428571428571429,representative_review_score == 1,1,0.02857142857142857,27,0.7714285714285715,35,0,9.211603174603175,35,2,0.05714285714285714

@@ -1,0 +1,3 @@
+﻿group,users,orders,paid_orders,gmv,average_main_payment_installments,median_main_payment_installments,one_time_orders,installment_orders,one_time_share_valid,installment_share_valid,zero_installment_orders,mixed_payment_orders,mixed_payment_share
+all_users,87214,90127,90126,14437047.49,2.9324723165346294,2.0,43825,46299,0.4862744662908881,0.5137255337091119,2,2082,0.023100991944610877
+high_value_users,4,35,35,3763.98,3.085714285714286,1.0,18,17,0.5142857142857142,0.4857142857142857,0,0,0.0

@@ -1,0 +1,5 @@
+﻿customer_unique_id,profile_state,profile_city,first_purchase_date,last_purchase_date,recency_days,frequency,monetary,r_score,f_score,m_score,rfm_segment,churn_flag,lifecycle_days,lifecycle_stage,is_high_value_churn_user
+3e43e6105506432c953e165fb2acf44c,SP,praia grande,2017-09-18,2018-02-27,154,9,1172.66,4,4,5,重要价值用户,1,162,Dormant Customer,1
+ca77025e7201e3b30c44b472ff346268,PE,recife,2017-10-09,2018-06-01,60,7,1122.72,5,4,5,重要价值用户,0,235,Mature Customer,0
+6469f99c1f9dfae7733b25662e7f1782,SP,santos,2017-09-19,2018-06-28,33,7,758.83,5,4,5,重要价值用户,0,282,Mature Customer,0
+8d50f5eadf50201ccdcedfb9e2ac8455,SP,sao paulo,2017-06-18,2018-07-23,8,12,709.77,5,5,5,重要价值用户,0,400,Mature Customer,0
