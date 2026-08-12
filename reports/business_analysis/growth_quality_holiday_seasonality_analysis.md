@@ -7,16 +7,15 @@
    - 客单价环比和同比增长率；
    - 新增用户、活跃用户环比和同比增长率。
    
-   新增用户：期间内第一次出现购买记录的用户
+   新增用户：期间内第一次出现正支付 delivered 购买记录的用户
    
-   活跃用户：一个月内有一次及以上购买记录的用户
+   活跃用户：一个月内有一次及以上正支付 delivered 购买记录的用户
    
 所得计算结果如下：
 
 | month   | gmv_mom  | gmv_yoy    | order_count_mom | order_count_yoy | aov_mom  | aov_yoy | new_users_mom | new_users_yoy | active_users_mom | active_users_yoy |
 | ------- | -------- | ---------- | --------------- | --------------- | -------- | ------- | ------------- | ------------ | ---------------- | ---------------- |
-| 2016-09 |          |            |                 |                 |          |         |               |              |                  |                  |
-| 2016-10 |          |            | 264.0           |                 |          |         | 261.0         |              | 261.0            |                  |
+| 2016-10 |          |            |                 |                 |          |         |               |              |                  |                  |
 | 2016-11 |          |            |                 |                 |          |         |               |              |                  |                  |
 | 2016-12 |          |            |                 |                 |          |         |               |              |                  |                  |
 | 2017-01 | 6499.7987|            | 749.0           |                 | 7.6677   |         | 716.0         |              | 717.0            |                  |
@@ -70,13 +69,12 @@ GMV环比增长率为正有4种原因：
 
 | month   | gmv_mom_change | monthly_order_count | diagnosis |
 | ------- | -------------- | ------------------- | --------- |
-| 2016-09 | null           | 1                   | order_count_too_low |
 | 2016-10 | null           | 265                 | order_count_too_low |
 | 2016-12 | -0.9996        | 1                   | order_count_too_low |
 | 2017-01 | 6499.7987      | 750                 | order_count_too_low, extreme_increase |
 
 5. 判断增长是否稳定、是否具有持续性
-- 排除月份2016-09，2016-10，2016-12，2017-01
+- 排除月份2016-10，2016-12，2017-01；2016-09 因仅有无正支付 delivered 订单，已不进入支付型月度公共层
 - 计算GMV环比增长率std=0.3153，较为稳定
 
 ## 第二项节假日与季节性分析
@@ -87,7 +85,7 @@ GMV环比增长率为正有4种原因：
 - 选取Black Friday、Christmas、Brazilian Carnival
 
 2. 比较节假日月份与普通月份的GMV、订单量和客单价
-- 月份已排除2016-09，2016-10，2016-12，2017-01
+- 月份已排除2016-10，2016-12，2017-01；2016-09 不在支付型月度公共层中
 
 结果如下：
 
@@ -159,7 +157,7 @@ GMV节后修复，回到接近基准水平，无下降
 
 5. 比较2017年和2018年相同月份，识别可能重复的季节性迹象
 - 通过python(src/analysis/business_overview/growth_quality.py和src/analysis/business_overview/seasonality_analysis.py)作图得到GMV变化图和GMV环比增长率变化图（visualization/business_overview/monthly_growth_rate.png和visualization/business_overview/seasonal_pattern.png）
-- 异常月份不参与制图（2016‑09，2016‑10，2016‑12，2017‑01）
+- 异常月份不参与制图（2016‑10，2016‑12，2017‑01）；2016‑09 不在支付型月度公共层中
 - 观察两图并无明显季节性迹象
 
 

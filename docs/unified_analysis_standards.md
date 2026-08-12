@@ -4,6 +4,7 @@
 | 2026-08-10 | FL | v2.1 | 按更新分工取消经济性代理，无法映射英文的品类统一标记为 unknown，并收敛公共层字段 |
 | 2026-08-11 | FL | v2.2 | 补充阶段四品类总体与月度销售汇总基础层 |
 | 2026-08-11 | hongshucham | v2.3 | 补充5.6 品类 CMGR 计算与品类分类规则 |
+| 2026-08-12 | FL | v2.4 | 月度 KPI 公共层统一为正支付 delivered 订单范围 |
 
 # 阶段一至阶段四全团队统一分析口径
 
@@ -130,10 +131,10 @@
 
 ### 3.2 月度 KPI、增长和季节性
 
-- 月度公共层固定字段为 `month`、`gmv`、`order_count`、`average_order_value`、`new_users`、`active_users`，定义见 `docs/monthly_kpi_dictionary.md`。
+- 月度公共层固定字段为 `month`、`gmv`、`order_count`、`average_order_value`、`new_users`、`active_users`，并统一限定为订单级正支付金额大于 0 的 delivered 订单；这是支付型月度分析层，不改变平台“有效订单量=全部 delivered 去重订单”的独立核心指标定义。字段细节见 `docs/monthly_kpi_dictionary.md`。
 - 环比增长率：`(本月值 - 上一自然月值) / 上一自然月值`；同比增长率：`(本月值 - 上年同月值) / 上年同月值`。
 - 前值缺失、月份不连续或分母为 0 时返回 `NULL`。
-- GMV 驱动拆解使用 `GMV = 支付订单量 × AOV`。若为保持与公共表字段一致而使用全部有效订单量，必须明确剩余无正支付订单造成的差异，不能静默混用。
+- GMV 驱动拆解使用 `GMV = monthly_kpi.order_count × AOV`；其中公共层 `order_count` 已统一为正支付 delivered 订单量，不得替换为全部 delivered 有效订单量。
 - 节假日、季节性分析必须使用订单级正支付数据和 `customer_unique_id`；比较不同长度窗口时使用日均 GMV、日均订单量和 AOV。
 - 节日前、中、后窗口及节假日日期较多，具体定义写在对应分析 SQL/报告中；同一节日在所有成员文件中必须复用同一日期表，修改时同步更新本文档和相关日期表。
 - 数据只能支持相关性或结构差异时，报告使用“相关”“伴随”“可能解释”，不得直接写“导致”“提升了”或“造成了”。

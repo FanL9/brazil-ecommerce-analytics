@@ -129,7 +129,7 @@ python -c "from pathlib import Path; import sqlite3; c=sqlite3.connect(r'databas
 python -c "from pathlib import Path; import sqlite3; c=sqlite3.connect(r'database/brazil_ecommerce.db'); c.executescript(Path(r'sql/02_business_overview/00_monthly_kpi_view.sql').read_text(encoding='utf-8-sig')); c.close()"
 ```
 
-该 SQL 可重复执行，会创建或重建 `monthly_kpi` View。View 按自然月输出以下字段：
+该 SQL 可重复执行，会创建或重建支付型 `monthly_kpi` View。View 仅纳入订单级正支付金额大于 0 的 delivered 订单，并按自然月输出以下字段：
 
 ```text
 month,gmv,order_count,average_order_value,new_users,active_users

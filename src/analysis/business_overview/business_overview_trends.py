@@ -28,12 +28,12 @@ from matplotlib.lines import Line2D
 from matplotlib.ticker import FuncFormatter, MaxNLocator
 
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_CSV = ROOT / "outputs/data/02_business_overview/monthly_kpi.csv"
 DEFAULT_DB = ROOT / "database/brazil_ecommerce.db"
-FIGURE_DIR = ROOT / "outputs/figures/02_business_overview"
+FIGURE_DIR = ROOT / "visualizations/business_overview"
 DIAGNOSTIC_CSV = ROOT / "outputs/data/02_business_overview/monthly_trend_diagnostics.csv"
-REPORT_PATH = ROOT / "reports/02_business_overview/business_trend_analysis.md"
+REPORT_PATH = ROOT / "reports/business_analysis/business_trend_analysis.md"
 
 EXPECTED_COLUMNS = [
     "month",
@@ -55,7 +55,7 @@ METRICS = {
     "order_count": {
         "title": "月度订单量趋势",
         "label": "订单量",
-        "ylabel": "有效订单量（单）",
+        "ylabel": "正支付已送达订单量（单）",
         "color": "#3A8D75",
         "money": False,
         "filename": "02_order_count_trend.png",
@@ -205,8 +205,7 @@ def read_and_validate(csv_path: Path, database_path: Path) -> tuple[pd.DataFrame
 
 def add_diagnostics(df: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, tuple[float, float]]]:
     result = df.copy()
-    first_month, last_month = result["month"].iloc[[0, -1]]
-    result["is_boundary_month"] = result["month"].isin([first_month, last_month])
+    result["is_boundary_month"] = result["month"].isin(["2016-09", "2018-08"])
     month_number = result["date"].dt.year * 12 + result["date"].dt.month
     result["previous_observed_month"] = result["month"].shift(1)
     result["data_gap_before"] = ~month_number.diff().eq(1)
@@ -683,12 +682,12 @@ def generate_report(
 - 字段：`month`、`gmv`、`order_count`、`average_order_value`、`new_users`、`active_users`，与公共层字段完全一致。
 - 覆盖范围：{validation.start_month} 至 {validation.end_month}，共 {validation.row_count} 个观测月份；源文件按月升序，重复月份 {validation.duplicate_months} 个。
 - 缺失月份：{missing_text}。未填充为 0，图中的折线在缺月处主动断开。
-- 空值：{format_nulls(validation.null_counts)}。该空值位于覆盖初期边界月，符合 GMV 为 0、无有效支付订单时 AOV 返回 NULL 的既有口径。
+- 空值：{format_nulls(validation.null_counts)}。公共层仅保留正支付 delivered 订单，AOV 与订单量使用同一订单范围。
 - CSV 与数据库 View：{'完全一致' if validation.db_matches_csv else '不一致'}。
 
 ### 数据边界
 
-2016-09 是业务数据覆盖初期，仅从月中开始；2018-08 是数据截止月，未覆盖完整自然月。两个月均保留在图中并以黄色背景标注，但不参与正常峰值、低谷、环比异常阈值和业务阶段判断。2016-11 在公共层中缺失，报告与图表均保留这一时间缺口，不补 0。新增用户是观察期内首次产生 delivered 订单的用户，覆盖开始前历史缺失可能导致早期存量用户被识别为新增用户。
+全部 delivered 数据从 2016-09 月中开始，但该月唯一 delivered 订单没有正支付，因此不进入本支付型公共层。2018-08 是数据截止月，未覆盖完整自然月，保留在图中并以黄色背景标注，但不参与正常峰值、低谷、环比异常阈值和业务阶段判断。2016-11 在公共层中缺失，报告与图表均保留这一时间缺口，不补 0。新增用户是观察期内首次产生正支付 delivered 订单的用户，覆盖开始前历史缺失可能导致早期存量用户被识别为新增用户。
 
 ## 2. 五项核心指标总体趋势
 
@@ -698,11 +697,11 @@ def generate_report(
 - **新增用户：** {overall_trend_text(df, 'new_users')}
 - **活跃用户：** {overall_trend_text(df, 'active_users')}
 
-![核心指标总览](../../outputs/figures/02_business_overview/06_core_metrics_overview.png)
+![核心指标总览](../../visualizations/business_overview/06_core_metrics_overview.png)
 
 ## 3. 业务阶段划分
 
-阶段划分只使用 GMV、订单量、新增用户、活跃用户四项共同趋势，排除 2016-09 和 2018-08。方法是对四指标做 `log1p` 与标准化，对 1—4 个有序阶段进行动态规划（每段至少 3 个观测月），以段内平方误差最小并用 BIC 惩罚段数；BIC 越低越优。本次结果为：{bic_text}，自动选择 {len(stages)} 个阶段。缺失的 2016-11 不参与拟合，也未补值。
+阶段划分只使用 GMV、订单量、新增用户、活跃用户四项共同趋势，排除不完整的 2018-08。方法是对四指标做 `log1p` 与标准化，对 1—4 个有序阶段进行动态规划（每段至少 3 个观测月），以段内平方误差最小并用 BIC 惩罚段数；BIC 越低越优。本次结果为：{bic_text}，自动选择 {len(stages)} 个阶段。缺失的 2016-11 不参与拟合，也未补值。
 
 | 阶段 | 起止月份 | 观测月数 | 主要变化 | 共同趋势依据 |
 |---|---|---:|---|---|
