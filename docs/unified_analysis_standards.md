@@ -5,6 +5,7 @@
 | 2026-08-11 | FL | v2.2 | 补充阶段四品类总体与月度销售汇总基础层 |
 | 2026-08-11 | hongshucham | v2.3 | 补充5.6 品类 CMGR 计算与品类分类规则 |
 | 2026-08-12 | FL | v2.4 | 月度 KPI 公共层统一为正支付 delivered 订单范围 |
+| 2026-08-12 | hongshucham | v2.5 | 修改 CMGR 计算与品类分类规则及分析cohort时间区间 |
 
 # 阶段一至阶段四全团队统一分析口径
 
@@ -189,6 +190,7 @@
 - 第 N 月留存率：`该 Cohort 在第 N 个自然月至少产生 1 笔有效订单的用户数 / Cohort 初始用户数`。
 - 同一用户在同一自然月最多计 1 次。
 - 只有完整经历第 N 月观察窗口的 Cohort 才能进入对应留存率比较；较新 Cohort 的右截尾单独标记为 `NULL`，不能填 0。
+- 计算 `outputs/data/03_customer_analysis/cohort_monthly_retention.csv`中留存率`retention rate` 保留了 `cohort_month` 从 `2016-10` 到 `2018-08` 的完整数据,且后续`outputs/data/03_customer_analysis/short_term_repeat_retention.csv`, `outputs/data/03_customer_analysis/customer_lifecycle_segment.csv`, `outputs/data/03_customer_analysis/lifecycle_stage_comparison.csv`皆基于此完整数据分析
 
 ### 4.5 7/30/90 日短期留存
 
@@ -307,12 +309,14 @@
 - 计算品类 GMV 与平台整体 CMGR ：CMGR = (期末商品销售额 / 期初商品销售额)^(1 / 间隔月数) - 1
 - 期初商品销售额：该品类或平台第一个有销售记录月份的 monthly_sales_amount。
 - 期末商品销售额：该品类或平台最后一个有销售记录月份的 monthly_sales_amount。
+- 平台CMGR = （平台期末总额 / 平台期初总额）^(1 / 间隔月数) - 1
+- 只有在2017-01与2018-07有数据的才会参与品类 CMGR 的计算，其他一律显示null
 - 品类定义：
-  1. 明星品类：销售额 > 品类销售额中位数，且品类CMGR高于所有品类平均CMGR超过 5 percentage points；
-  2. 潜力品类：销售额 ≤ 品类销售额中位数，但品类CMGR高于所有品类平均CMGR超过 5 percentage points；
-  3. 稳定品类：CMGR ≥ 0，且未达到明星或潜力品类增长标准；
-  4. 衰退品类：CMGR < 0；
-  5. 新兴品类：观察期内首次出现销售，且无法计算有效 CMGR 的品类。
+  1. 明星品类（Star Category）：有有效 CMGR，且销售额高于品类销售额中位数，同时品类 CMGR 高于平台 CMGR 超过 5 个 percentage points；
+  2. 潜力品类（Potential Category）：有有效 CMGR，且销售额低于或等于品类销售额中位数，同时品类 CMGR 高于平台 CMGR 超过 5 个 percentage points；
+  3. 稳定品类（Stable Category）：有有效 CMGR，且 CMGR ≥ 0，但未达到明星品类或潜力品类的增长标准；
+  4. 衰退品类（Declining Category）：有有效 CMGR 的品类：CMGR < 0；无法计算 CMGR 的品类：2018-07 无销售记录；
+  5. 新兴品类（Emerging Category）：无法计算有效 CMGR，且 2017-01 无销售记录、2018-07 有销售记录。
 
 ## 6. 报告与产出一致性
 
