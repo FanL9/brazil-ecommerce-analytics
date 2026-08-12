@@ -1,4 +1,3 @@
-
 import pandas as pd
 import matplotlib.pyplot as plt
 
@@ -6,16 +5,27 @@ import matplotlib.pyplot as plt
 # 1. 读取数据
 # ==========================
 
-file_path = r"outputs\data\06_product_analysis\category_monthly_growth.csv"
+file_path = r"outputs\data\06_ptoduct_analysis\category_monthly_growth.csv"
+
 df = pd.read_csv(file_path)
 
-# 查看字段
 print(df.head())
+print(df.columns)
 
 # ==========================
-# 2. 选择Top品类（避免类别太多看不清）
-# Top 15 是按照整个观察期内累计销售额（total sales amount）最高的15个品类选出来的，不是按照某一个月份。
+# 2. 只保留 2017-01 至 2018-07
 # ==========================
+
+df = df[
+    (df["purchase_month"] >= "2017-01") &
+    (df["purchase_month"] <= "2018-07")
+].copy()
+
+# ==========================
+# 3. 选择 Top 15 品类
+# 按整个观察期累计销售额排序
+# ==========================
+
 top_categories = (
     df.groupby("category_name")["monthly_sales_amount"]
     .sum()
@@ -29,18 +39,19 @@ heatmap_data = df[
 ]
 
 # ==========================
-# 3. 转换为热力图格式
-# 行：category
-# 列：month
-# 值：monthly_sales_amount
+# 4. 转换为 Heatmap 格式
+# 行：Category
+# 列：Month
+# 值：Monthly Sales Amount
 # ==========================
+
 heatmap_table = heatmap_data.pivot(
     index="category_name",
     columns="purchase_month",
     values="monthly_sales_amount"
 )
 
-# 按总销售额排序
+# 按整个观察期累计销售额排序
 category_order = (
     heatmap_table.sum(axis=1)
     .sort_values(ascending=False)
@@ -49,9 +60,16 @@ category_order = (
 
 heatmap_table = heatmap_table.loc[category_order]
 
+# 按时间排序月份
+heatmap_table = heatmap_table.reindex(
+    sorted(heatmap_table.columns),
+    axis=1
+)
+
 # ==========================
-# 4. 绘制 Heatmap
+# 5. 绘制 Heatmap
 # ==========================
+
 plt.figure(figsize=(16, 8))
 
 plt.imshow(
@@ -79,7 +97,7 @@ plt.xlabel("Purchase Month")
 plt.ylabel("Category")
 
 plt.title(
-    "Monthly Sales Heatmap of Top Categories"
+    "Monthly Sales Heatmap of Top 15 Categories (2017-01 to 2018-07)"
 )
 
 plt.tight_layout()
