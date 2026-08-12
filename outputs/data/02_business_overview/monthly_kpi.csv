@@ -1,5 +1,4 @@
-month,gmv,order_count,average_order_value,new_users,active_users
-2016-09,0.0,1,,1,1
+﻿month,gmv,order_count,average_order_value,new_users,active_users
 2016-10,46566.71,265,175.72343396226415,262,262
 2016-12,19.62,1,19.62,1,1
 2017-01,127545.67,750,170.06089333333333,717,718
