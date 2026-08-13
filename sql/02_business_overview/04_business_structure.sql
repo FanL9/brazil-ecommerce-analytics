@@ -33,8 +33,8 @@
 --   - 500+
 --
 -- Comparable period:
---   - 2017-01 through 2017-08
---   - 2018-01 through 2018-08
+--   - 2017-01 through 2017-07
+--   - 2018-01 through 2018-07
 --   - 2016 and 2018 must not be treated as complete calendar years.
 --
 -- Important:
@@ -131,12 +131,12 @@ SELECT
 
     CASE
         WHEN SUBSTR(o.order_purchase_timestamp, 1, 7)
-             BETWEEN '2017-01' AND '2017-08'
-        THEN '2017-01_to_2017-08'
+             BETWEEN '2017-01' AND '2017-07'
+        THEN '2017-01_to_2017-07'
 
         WHEN SUBSTR(o.order_purchase_timestamp, 1, 7)
-             BETWEEN '2018-01' AND '2018-08'
-        THEN '2018-01_to_2018-08'
+             BETWEEN '2018-01' AND '2018-07'
+        THEN '2018-01_to_2018-07'
 
         ELSE NULL
     END AS comparable_period
@@ -367,8 +367,8 @@ WHERE top_type_count > 1;
 --
 -- Periods:
 --   ALL_DATA
---   2017-01_to_2017-08
---   2018-01_to_2018-08
+--   2017-01_to_2017-07
+--   2018-01_to_2018-07
 -- ============================================================================
 
 DROP TABLE IF EXISTS business_structure_payment_summary;
@@ -383,13 +383,13 @@ WITH periods AS (
 
     SELECT
         2 AS period_order,
-        '2017-01_to_2017-08' AS period
+        '2017-01_to_2017-07' AS period
 
     UNION ALL
 
     SELECT
         3 AS period_order,
-        '2018-01_to_2018-08' AS period
+        '2018-01_to_2018-07' AS period
 ),
 
 payment_types AS (
@@ -700,8 +700,8 @@ ORDER BY
 --
 -- Periods:
 --   ALL_DATA
---   2017-01_to_2017-08
---   2018-01_to_2018-08
+--   2017-01_to_2017-07
+--   2018-01_to_2018-07
 -- ============================================================================
 
 DROP TABLE IF EXISTS business_structure_order_value_summary;
@@ -716,13 +716,13 @@ WITH periods AS (
 
     SELECT
         2 AS period_order,
-        '2017-01_to_2017-08' AS period
+        '2017-01_to_2017-07' AS period
 
     UNION ALL
 
     SELECT
         3 AS period_order,
-        '2018-01_to_2018-08' AS period
+        '2018-01_to_2018-07' AS period
 ),
 
 value_bands AS (
@@ -760,7 +760,7 @@ band_stats AS (
         'ALL_DATA' AS period,
         order_value_band,
 
-        COUNT(*) AS order_count,
+        COUNT(*) AS paid_order_count,
 
         ROUND(
             SUM(order_payment_amount),
@@ -781,7 +781,7 @@ band_stats AS (
         comparable_period AS period,
         order_value_band,
 
-        COUNT(*) AS order_count,
+        COUNT(*) AS paid_order_count,
 
         ROUND(
             SUM(order_payment_amount),
@@ -843,9 +843,9 @@ SELECT
     value_bands.order_value_band,
 
     COALESCE(
-        band_stats.order_count,
+        band_stats.paid_order_count,
         0
-    ) AS order_count,
+    ) AS paid_order_count,
 
     COALESCE(
         band_stats.gmv,
@@ -854,12 +854,12 @@ SELECT
 
     CASE
         WHEN COALESCE(
-            band_stats.order_count,
+            band_stats.paid_order_count,
             0
         ) > 0
         THEN ROUND(
             band_stats.gmv
-            / band_stats.order_count,
+            / band_stats.paid_order_count,
             2
         )
         ELSE NULL
@@ -868,12 +868,12 @@ SELECT
     ROUND(
         CAST(
             COALESCE(
-                band_stats.order_count,
+                band_stats.paid_order_count,
                 0
             ) AS REAL
         ) / NULLIF(period_totals.total_paid_orders, 0),
         6
-    ) AS order_share,
+    ) AS paid_order_share,
 
     ROUND(
         COALESCE(
@@ -909,16 +909,16 @@ ON business_structure_order_value_summary(
 
 -- Validation:
 -- For each period:
---   sum(order_count) = total paid orders
+--   sum(paid_order_count) = total paid orders
 --   sum(gmv) = total GMV
---   sum(order_share) should be approximately 1
+--   sum(paid_order_share) should be approximately 1
 --   sum(gmv_share) should be approximately 1
 
 SELECT
     period,
 
-    SUM(order_count)
-        AS summed_order_count,
+    SUM(paid_order_count)
+        AS summed_paid_order_count,
 
     MAX(total_paid_orders)
         AS expected_total_paid_orders,
@@ -932,9 +932,9 @@ SELECT
         AS expected_total_gmv,
 
     ROUND(
-        SUM(order_share),
+        SUM(paid_order_share),
         6
-    ) AS summed_order_share,
+    ) AS summed_paid_order_share,
 
     ROUND(
         SUM(gmv_share),
@@ -956,10 +956,10 @@ ORDER BY
 SELECT
     period,
     order_value_band,
-    order_count,
+    paid_order_count,
     gmv,
     average_order_value,
-    order_share,
+    paid_order_share,
     gmv_share
 
 FROM business_structure_order_value_summary
@@ -980,8 +980,8 @@ ORDER BY
 --
 -- Periods:
 --   ALL_DATA
---   2017-01_to_2017-08
---   2018-01_to_2018-08
+--   2017-01_to_2017-07
+--   2018-01_to_2018-07
 -- ============================================================================
 
 DROP TABLE IF EXISTS business_structure_state_summary;
@@ -996,13 +996,13 @@ WITH periods AS (
 
     SELECT
         2 AS period_order,
-        '2017-01_to_2017-08' AS period
+        '2017-01_to_2017-07' AS period
 
     UNION ALL
 
     SELECT
         3 AS period_order,
-        '2018-01_to_2018-08' AS period
+        '2018-01_to_2018-07' AS period
 ),
 
 states AS (
@@ -1019,7 +1019,7 @@ state_stats AS (
         'ALL_DATA' AS period,
         customer_state,
 
-        COUNT(*) AS order_count,
+        COUNT(*) AS paid_order_count,
 
         COUNT(
             DISTINCT customer_unique_id
@@ -1045,7 +1045,7 @@ state_stats AS (
         comparable_period AS period,
         customer_state,
 
-        COUNT(*) AS order_count,
+        COUNT(*) AS paid_order_count,
 
         COUNT(
             DISTINCT customer_unique_id
@@ -1111,9 +1111,9 @@ combined AS (
         states.customer_state,
 
         COALESCE(
-            state_stats.order_count,
+            state_stats.paid_order_count,
             0
-        ) AS order_count,
+        ) AS paid_order_count,
 
         COALESCE(
             state_stats.customer_count,
@@ -1127,12 +1127,12 @@ combined AS (
 
         CASE
             WHEN COALESCE(
-                state_stats.order_count,
+                state_stats.paid_order_count,
                 0
             ) > 0
             THEN ROUND(
                 state_stats.gmv
-                / state_stats.order_count,
+                / state_stats.paid_order_count,
                 2
             )
             ELSE NULL
@@ -1141,7 +1141,7 @@ combined AS (
         ROUND(
             CAST(
                 COALESCE(
-                    state_stats.order_count,
+                    state_stats.paid_order_count,
                     0
                 ) AS REAL
             ) / NULLIF(
@@ -1149,7 +1149,7 @@ combined AS (
                 0
             ),
             6
-        ) AS order_share,
+        ) AS paid_order_share,
 
         ROUND(
             COALESCE(
@@ -1182,11 +1182,11 @@ SELECT
     period_order,
     period,
     customer_state,
-    order_count,
+    paid_order_count,
     customer_count,
     gmv,
     average_order_value,
-    order_share,
+    paid_order_share,
     gmv_share,
 
     ROW_NUMBER() OVER (
@@ -1220,9 +1220,9 @@ ON business_structure_state_summary(
 
 -- Validation:
 -- For each period:
---   sum(order_count) = total paid orders
+--   sum(paid_order_count) = total paid orders
 --   sum(gmv) = total GMV
---   sum(order_share) should be approximately 1
+--   sum(paid_order_share) should be approximately 1
 --   sum(gmv_share) should be approximately 1
 
 SELECT
@@ -1230,8 +1230,8 @@ SELECT
 
     COUNT(*) AS state_count,
 
-    SUM(order_count)
-        AS summed_order_count,
+    SUM(paid_order_count)
+        AS summed_paid_order_count,
 
     MAX(total_paid_orders)
         AS expected_total_paid_orders,
@@ -1245,9 +1245,9 @@ SELECT
         AS expected_total_gmv,
 
     ROUND(
-        SUM(order_share),
+        SUM(paid_order_share),
         6
-    ) AS summed_order_share,
+    ) AS summed_paid_order_share,
 
     ROUND(
         SUM(gmv_share),
@@ -1269,11 +1269,11 @@ ORDER BY
 SELECT
     period,
     customer_state,
-    order_count,
+    paid_order_count,
     customer_count,
     gmv,
     average_order_value,
-    order_share,
+    paid_order_share,
     gmv_share,
     gmv_rank
 
@@ -1323,23 +1323,23 @@ SELECT
         SUM(
             CASE
                 WHEN gmv_rank <= 5
-                THEN order_share
+                THEN paid_order_share
                 ELSE 0
             END
         ),
         6
-    ) AS top_5_order_share,
+    ) AS top_5_paid_order_share,
 
     ROUND(
         SUM(
             CASE
                 WHEN gmv_rank <= 10
-                THEN order_share
+                THEN paid_order_share
                 ELSE 0
             END
         ),
         6
-    ) AS top_10_order_share,
+    ) AS top_10_paid_order_share,
 
     -- HHI based on state GMV shares.
     -- Multiplying by 10,000 makes the index easier to interpret.
@@ -1349,9 +1349,9 @@ SELECT
     ) AS state_gmv_hhi,
 
     ROUND(
-        SUM(order_share * order_share) * 10000,
+        SUM(paid_order_share * paid_order_share) * 10000,
         2
-    ) AS state_order_hhi,
+    ) AS state_paid_order_hhi,
 
     COUNT(*) AS state_count
 
@@ -1383,8 +1383,8 @@ WITH state_2017 AS (
     SELECT
         customer_state,
 
-        order_count
-            AS order_count_2017,
+        paid_order_count
+            AS paid_order_count_2017,
 
         customer_count
             AS customer_count_2017,
@@ -1395,8 +1395,8 @@ WITH state_2017 AS (
         average_order_value
             AS average_order_value_2017,
 
-        order_share
-            AS order_share_2017,
+        paid_order_share
+            AS paid_order_share_2017,
 
         gmv_share
             AS gmv_share_2017,
@@ -1412,15 +1412,15 @@ WITH state_2017 AS (
 
     FROM business_structure_state_summary
 
-    WHERE period = '2017-01_to_2017-08'
+    WHERE period = '2017-01_to_2017-07'
 ),
 
 state_2018 AS (
     SELECT
         customer_state,
 
-        order_count
-            AS order_count_2018,
+        paid_order_count
+            AS paid_order_count_2018,
 
         customer_count
             AS customer_count_2018,
@@ -1431,8 +1431,8 @@ state_2018 AS (
         average_order_value
             AS average_order_value_2018,
 
-        order_share
-            AS order_share_2018,
+        paid_order_share
+            AS paid_order_share_2018,
 
         gmv_share
             AS gmv_share_2018,
@@ -1448,15 +1448,15 @@ state_2018 AS (
 
     FROM business_structure_state_summary
 
-    WHERE period = '2018-01_to_2018-08'
+    WHERE period = '2018-01_to_2018-07'
 ),
 
 state_change AS (
     SELECT
         state_2018.customer_state,
 
-        state_2017.order_count_2017,
-        state_2018.order_count_2018,
+        state_2017.paid_order_count_2017,
+        state_2018.paid_order_count_2018,
 
         state_2017.customer_count_2017,
         state_2018.customer_count_2018,
@@ -1467,8 +1467,8 @@ state_change AS (
         state_2017.average_order_value_2017,
         state_2018.average_order_value_2018,
 
-        state_2017.order_share_2017,
-        state_2018.order_share_2018,
+        state_2017.paid_order_share_2017,
+        state_2018.paid_order_share_2018,
 
         state_2017.gmv_share_2017,
         state_2018.gmv_share_2018,
@@ -1488,15 +1488,15 @@ state_change AS (
         END AS gmv_growth_rate,
 
         CASE
-            WHEN state_2017.order_count_2017 > 0
+            WHEN state_2017.paid_order_count_2017 > 0
             THEN ROUND(
-                CAST(state_2018.order_count_2018 AS REAL)
-                / state_2017.order_count_2017
+                CAST(state_2018.paid_order_count_2018 AS REAL)
+                / state_2017.paid_order_count_2017
                 - 1,
                 6
             )
             ELSE NULL
-        END AS order_growth_rate,
+        END AS paid_order_growth_rate,
 
         CASE
             WHEN state_2017.customer_count_2017 > 0
@@ -1527,10 +1527,10 @@ state_change AS (
         ) AS gmv_share_change,
 
         ROUND(
-            state_2018.order_share_2018
-            - state_2017.order_share_2017,
+            state_2018.paid_order_share_2018
+            - state_2017.paid_order_share_2017,
             6
-        ) AS order_share_change,
+        ) AS paid_order_share_change,
 
         state_2018.total_gmv_2018
             / state_2017.total_gmv_2017
@@ -1550,8 +1550,8 @@ state_change AS (
 SELECT
     customer_state,
 
-    order_count_2017,
-    order_count_2018,
+    paid_order_count_2017,
+    paid_order_count_2018,
 
     customer_count_2017,
     customer_count_2018,
@@ -1562,8 +1562,8 @@ SELECT
     average_order_value_2017,
     average_order_value_2018,
 
-    order_share_2017,
-    order_share_2018,
+    paid_order_share_2017,
+    paid_order_share_2018,
 
     gmv_share_2017,
     gmv_share_2018,
@@ -1572,12 +1572,12 @@ SELECT
     gmv_rank_2018,
 
     gmv_growth_rate,
-    order_growth_rate,
+    paid_order_growth_rate,
     customer_growth_rate,
     average_order_value_growth_rate,
 
     gmv_share_change,
-    order_share_change,
+    paid_order_share_change,
 
     ROUND(
         platform_gmv_growth_rate,
@@ -1630,10 +1630,10 @@ SELECT
     period,
     top_5_gmv_share,
     top_10_gmv_share,
-    top_5_order_share,
-    top_10_order_share,
+    top_5_paid_order_share,
+    top_10_paid_order_share,
     state_gmv_hhi,
-    state_order_hhi
+    state_paid_order_hhi
 
 FROM business_structure_state_concentration
 

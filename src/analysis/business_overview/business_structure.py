@@ -16,10 +16,10 @@ Figures:
 
 Metric scope
 ------------
-- Valid orders: delivered orders with a positive order-level payment amount.
+- Paid delivered orders: delivered orders with a positive order-level payment amount.
 - GMV: positive payment values aggregated to order_id.
 - AOV: GMV divided by paid delivered order count.
-- Time comparison: January-August 2017 versus January-August 2018.
+- Time comparison: January-July 2017 versus January-July 2018.
 - Geography: customer_state.
 """
 
@@ -147,10 +147,10 @@ SELECT
     period,
     band_order,
     order_value_band,
-    order_count,
+    paid_order_count,
     gmv,
     average_order_value,
-    order_share,
+    paid_order_share,
     gmv_share,
     total_paid_orders,
     total_gmv
@@ -166,11 +166,11 @@ SELECT
     s.period_order,
     s.period,
     s.customer_state,
-    s.order_count,
+    s.paid_order_count,
     s.customer_count,
     s.gmv,
     s.average_order_value,
-    s.order_share,
+    s.paid_order_share,
     s.gmv_share,
     s.gmv_rank,
     s.total_paid_orders,
@@ -178,31 +178,31 @@ SELECT
 
     concentration.top_5_gmv_share,
     concentration.top_10_gmv_share,
-    concentration.top_5_order_share,
-    concentration.top_10_order_share,
+    concentration.top_5_paid_order_share,
+    concentration.top_10_paid_order_share,
     concentration.state_gmv_hhi,
-    concentration.state_order_hhi,
+    concentration.state_paid_order_hhi,
 
-    change_data.order_count_2017,
-    change_data.order_count_2018,
+    change_data.paid_order_count_2017,
+    change_data.paid_order_count_2018,
     change_data.customer_count_2017,
     change_data.customer_count_2018,
     change_data.gmv_2017,
     change_data.gmv_2018,
     change_data.average_order_value_2017,
     change_data.average_order_value_2018,
-    change_data.order_share_2017,
-    change_data.order_share_2018,
+    change_data.paid_order_share_2017,
+    change_data.paid_order_share_2018,
     change_data.gmv_share_2017,
     change_data.gmv_share_2018,
     change_data.gmv_rank_2017,
     change_data.gmv_rank_2018,
     change_data.gmv_growth_rate,
-    change_data.order_growth_rate,
+    change_data.paid_order_growth_rate,
     change_data.customer_growth_rate,
     change_data.average_order_value_growth_rate,
     change_data.gmv_share_change,
-    change_data.order_share_change,
+    change_data.paid_order_share_change,
     change_data.platform_gmv_growth_rate,
     change_data.growth_gap_vs_platform,
     change_data.equal_state_share_benchmark,
@@ -342,7 +342,7 @@ def validate_analysis_data(
     )
 
     order_value_orders = int(
-        order_value_all["order_count"].sum()
+        order_value_all["paid_order_count"].sum()
     )
     order_value_gmv = round(
         float(order_value_all["gmv"].sum()),
@@ -350,21 +350,21 @@ def validate_analysis_data(
     )
 
     state_orders = int(
-        state_all["order_count"].sum()
+        state_all["paid_order_count"].sum()
     )
     state_gmv = round(
         float(state_all["gmv"].sum()),
         2,
     )
 
-    expected_orders = 96_477
+    expected_paid_orders = 96_477
     expected_gmv = 15_422_461.77
 
     order_totals = {
         payment_orders,
         order_value_orders,
         state_orders,
-        expected_orders,
+        expected_paid_orders,
     }
 
     if len(order_totals) != 1:
@@ -373,7 +373,7 @@ def validate_analysis_data(
             f"payment={payment_orders}, "
             f"order_value={order_value_orders}, "
             f"state={state_orders}, "
-            f"expected={expected_orders}"
+            f"expected={expected_paid_orders}"
         )
 
     gmv_totals = [
@@ -393,7 +393,7 @@ def validate_analysis_data(
             )
 
     print("Analysis data validated:")
-    print(f"  Paid delivered orders: {expected_orders:,}")
+    print(f"  Paid delivered orders: {expected_paid_orders:,}")
     print(f"  GMV: {expected_gmv:,.2f}")
     print(f"  Payment rows: {len(payment_data)}")
     print(f"  Order value rows: {len(order_value_data)}")
@@ -409,13 +409,13 @@ def create_payment_structure_figure(
 ) -> None:
     """Create the comparable-period payment GMV share chart."""
     comparable_periods = [
-        "2017-01_to_2017-08",
-        "2018-01_to_2018-08",
+        "2017-01_to_2017-07",
+        "2018-01_to_2018-07",
     ]
 
     period_labels = {
-        "2017-01_to_2017-08": "Jan-Aug 2017",
-        "2018-01_to_2018-08": "Jan-Aug 2018",
+        "2017-01_to_2017-07": "Jan-Jul 2017",
+        "2018-01_to_2018-07": "Jan-Jul 2018",
     }
 
     payment_order = (
@@ -454,7 +454,7 @@ def create_payment_structure_figure(
 
     axis.set_title(
         "Payment Method GMV Share: "
-        "Jan-Aug 2017 vs Jan-Aug 2018"
+        "Jan-Jul 2017 vs Jan-Jul 2018"
     )
     axis.set_xlabel("Payment method")
     axis.set_ylabel("GMV share (%)")
@@ -524,7 +524,7 @@ def create_order_value_structure_figure(
             order_value_data["period"] == "ALL_DATA",
             [
                 "order_value_band",
-                "order_share",
+                "paid_order_share",
                 "gmv_share",
             ],
         ]
@@ -532,7 +532,7 @@ def create_order_value_structure_figure(
         .reindex(band_order)
         .rename(
             columns={
-                "order_share": "Order share",
+                "paid_order_share": "Paid order share",
                 "gmv_share": "GMV share",
             }
         )
@@ -546,7 +546,7 @@ def create_order_value_structure_figure(
     )
 
     axis.set_title(
-        "Order and GMV Share by Order Value Band"
+        "Paid Order and GMV Share by Order Value Band"
     )
     axis.set_xlabel("Order value band")
     axis.set_ylabel("Share (%)")
@@ -785,7 +785,7 @@ def create_regional_structure_change_figure(
         axis.set_xscale("log")
 
         axis.set_xlabel(
-            "2018 GMV share (%) — log scale"
+            "Jan-Jul 2018 GMV share (%) - log scale"
         )
 
         axis.grid(
@@ -923,7 +923,7 @@ def create_regional_structure_change_figure(
 
     figure.suptitle(
         "Regional Structure Change: "
-        "2018 Scale vs Growth Gap",
+        "Jan-Jul 2018 Scale vs Growth Gap",
         y=1.01,
     )
 
