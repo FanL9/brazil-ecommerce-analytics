@@ -324,8 +324,8 @@
 - 计算品类 GMV 与平台整体 CMGR ：CMGR = (期末商品销售额 / 期初商品销售额)^(1 / 间隔月数) - 1
 - 期初商品销售额：该品类或平台第一个有销售记录月份的 monthly_sales_amount。
 - 期末商品销售额：该品类或平台最后一个有销售记录月份的 monthly_sales_amount。
-- 平台CMGR = （平台期末总额 / 平台期初总额）^(1 / 间隔月数) - 1
-- 只有在2017-01与2018-07有数据的才会参与品类 CMGR 的计算，其他一律显示null
+- 平台 CMGR = （平台期末总额 / 平台期初总额）^(1 / 间隔月数) - 1
+- 只有在 `2017-01` 与 `2018-07` 有数据的才会参与品类 CMGR 的计算，其他一律显示null
 - 品类定义：
   1. 明星品类（Star Category）：有有效 CMGR，且销售额高于品类销售额中位数，同时品类 CMGR 高于平台 CMGR 超过 5 个 percentage points；
   2. 潜力品类（Potential Category）：有有效 CMGR，且销售额低于或等于品类销售额中位数，同时品类 CMGR 高于平台 CMGR 超过 5 个 percentage points；
