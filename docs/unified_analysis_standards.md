@@ -175,7 +175,7 @@
 - 用户首购时间为完整可用历史或声明截止日前的第一笔有效订单时间。
 - 新增用户为首购时间落在统计周期内的唯一用户，同一用户只能归入一个首购周期。
 - 新增用户不是注册用户；数据观察期开始前历史缺失可能造成左截尾，报告必须披露。
-- `outputs/data/02_business_overview/daily_kpi` 中的 `new_users` 定义为 `customer_unique_id` 第一次产生 `delivered` 订单的用户; `active_users_per_day` 定义为 `customer_unique_id`当天至少产生一笔 `delivered` 订单的用户。
+- `outputs/data/02_business_overview/daily_kpi.csv` 中的 `new_users` 定义为 `customer_unique_id` 第一次产生 `delivered` 订单的用户; `active_users_per_day` 定义为 `customer_unique_id`当天至少产生一笔 `delivered` 订单的用户。
 
 ### 4.3 复购用户、复购率和购买频次
 
