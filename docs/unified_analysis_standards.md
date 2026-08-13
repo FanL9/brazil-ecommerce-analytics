@@ -207,7 +207,7 @@
 - 完整观察窗口要求首购时间不晚于观察截止日减 N 日；窗口不足用户必须排除，并同时报告纳入人数和排除人数。
 - 指标之间的关系 7 日复购用户 ⊆ 30 日复购用户 ⊆ 90 日复购用户。
 - 7/30/90 日留存不得与自然月 Cohort 留存混称。
-- 保留的时间窗口：
+- `outputs/data/03_customer_analysis/short_term_repeat_retention.csv`保留的时间窗口：
 
 | window | observation_end        | latest_eligible_first_purchase | window_days |
 |--------|------------------------|--------------------------------|-------------|
