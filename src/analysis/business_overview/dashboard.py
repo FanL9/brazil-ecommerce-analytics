@@ -1,8 +1,8 @@
 """
-Interactive core KPI dashboard — KPI trend version.
+Interactive workbook dashboard — Stage 1 18 core metrics + Stage 2 business analysis.
 
-Current scope
--------------
+Stage 2 current scope
+---------------------
 1. Global filters:
    - Date range
    - Customer state
@@ -88,6 +88,30 @@ HOLIDAY_DATA_PATH = (
     / "holiday_comparison.csv"
 )
 
+STAGE1_ORDER_DATA_PATH = (
+    PROJECT_ROOT
+    / "outputs"
+    / "data"
+    / "01_core_metrics"
+    / "stage1_order_metric_base.csv"
+)
+
+STAGE1_COHORT_DATA_PATH = (
+    PROJECT_ROOT
+    / "outputs"
+    / "data"
+    / "01_core_metrics"
+    / "stage1_cohort_retention.csv"
+)
+
+STAGE1_CATEGORY_DATA_PATH = (
+    PROJECT_ROOT
+    / "outputs"
+    / "data"
+    / "01_core_metrics"
+    / "stage1_category_item_base.csv"
+)
+
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -108,6 +132,45 @@ REQUIRED_COLUMNS = {
     "is_mixed_payment",
     "first_paid_purchase_timestamp",
 }
+
+STAGE1_ORDER_REQUIRED_COLUMNS = {
+    "order_id",
+    "customer_unique_id",
+    "order_status",
+    "order_purchase_timestamp",
+    "purchase_date",
+    "purchase_month",
+    "is_valid_order",
+    "order_payment_amount",
+    "is_paid_delivered_order",
+    "first_delivered_purchase_timestamp",
+    "delivery_days",
+    "is_delivery_evaluable",
+    "is_late_delivery",
+    "review_score",
+    "has_valid_review",
+    "is_positive_review",
+}
+
+
+STAGE1_COHORT_REQUIRED_COLUMNS = {
+    "cohort_month",
+    "retention_month_number",
+    "cohort_customer_count",
+    "retained_customer_count",
+    "customer_retention_rate",
+}
+
+STAGE1_CATEGORY_REQUIRED_COLUMNS = {
+    "order_id",
+    "order_item_id",
+    "order_purchase_timestamp",
+    "purchase_date",
+    "purchase_month",
+    "product_category",
+    "price",
+}
+
 
 ORDER_VALUE_BAND_ORDER = [
     "0-50",
@@ -243,6 +306,325 @@ def format_percentage(value: float) -> str:
 # ---------------------------------------------------------------------------
 # Data loading and validation
 # ---------------------------------------------------------------------------
+
+@st.cache_data(show_spinner=False)
+def load_stage1_order_data(
+    data_path: str,
+) -> pd.DataFrame:
+    """Load and validate the one-row-per-order Stage 1 metric base."""
+    path = Path(data_path)
+
+    if not path.exists():
+        raise FileNotFoundError(
+            "Stage 1 order metric data file was not found:\n"
+            f"{path}\n\n"
+            "Run src/analysis/core_metrics/"
+            "prepare_stage1_dashboard_data.py first."
+        )
+
+    data = pd.read_csv(
+        path,
+        encoding="utf-8-sig",
+    )
+
+    missing_columns = (
+        STAGE1_ORDER_REQUIRED_COLUMNS
+        - set(data.columns)
+    )
+
+    if missing_columns:
+        raise ValueError(
+            "stage1_order_metric_base.csv is missing required columns: "
+            + ", ".join(
+                sorted(missing_columns)
+            )
+        )
+
+    data["order_purchase_timestamp"] = pd.to_datetime(
+        data["order_purchase_timestamp"],
+        errors="coerce",
+    )
+
+    data["first_delivered_purchase_timestamp"] = pd.to_datetime(
+        data["first_delivered_purchase_timestamp"],
+        errors="coerce",
+    )
+
+    data["purchase_date"] = pd.to_datetime(
+        data["purchase_date"],
+        errors="coerce",
+    ).dt.date
+
+    data["purchase_month_start"] = (
+        data["order_purchase_timestamp"]
+        .dt.to_period("M")
+        .dt.to_timestamp()
+    )
+
+    numeric_columns = [
+        "order_payment_amount",
+        "is_valid_order",
+        "is_paid_delivered_order",
+        "delivery_days",
+        "is_delivery_evaluable",
+        "is_late_delivery",
+        "review_score",
+        "has_valid_review",
+        "is_positive_review",
+    ]
+
+    for column in numeric_columns:
+        data[column] = pd.to_numeric(
+            data[column],
+            errors="coerce",
+        )
+
+    critical_columns = [
+        "order_id",
+        "order_status",
+        "order_purchase_timestamp",
+        "purchase_date",
+        "purchase_month_start",
+        "is_valid_order",
+        "is_paid_delivered_order",
+    ]
+
+    null_counts = (
+        data[critical_columns]
+        .isna()
+        .sum()
+    )
+
+    invalid_nulls = null_counts[
+        null_counts > 0
+    ]
+
+    if not invalid_nulls.empty:
+        raise ValueError(
+            "Unexpected null values were found in the Stage 1 order base:\n"
+            + invalid_nulls.to_string()
+        )
+
+    duplicate_orders = int(
+        data["order_id"].duplicated().sum()
+    )
+
+    if duplicate_orders:
+        raise ValueError(
+            "stage1_order_metric_base.csv must contain one row per order_id. "
+            f"Duplicate rows found: {duplicate_orders}"
+        )
+
+    paid_rows = data.loc[
+        data["is_paid_delivered_order"] == 1
+    ]
+
+    if (
+        paid_rows["order_payment_amount"].isna().any()
+        or (
+            paid_rows["order_payment_amount"] <= 0
+        ).any()
+    ):
+        raise ValueError(
+            "Paid delivered orders must have positive order-level payment amounts."
+        )
+
+    return data.sort_values(
+        [
+            "order_purchase_timestamp",
+            "order_id",
+        ]
+    ).reset_index(drop=True)
+
+
+@st.cache_data(show_spinner=False)
+def load_stage1_cohort_data(
+    data_path: str,
+) -> pd.DataFrame:
+    """Load and validate the formal Stage 1 M09 cohort-retention output."""
+    path = Path(data_path)
+
+    if not path.exists():
+        raise FileNotFoundError(
+            "Stage 1 cohort-retention data file was not found:\n"
+            f"{path}\n\n"
+            "Run src/analysis/core_metrics/"
+            "prepare_stage1_supporting_data.py first."
+        )
+
+    data = pd.read_csv(
+        path,
+        encoding="utf-8-sig",
+    )
+
+    missing_columns = (
+        STAGE1_COHORT_REQUIRED_COLUMNS
+        - set(data.columns)
+    )
+
+    if missing_columns:
+        raise ValueError(
+            "stage1_cohort_retention.csv is missing required columns: "
+            + ", ".join(
+                sorted(missing_columns)
+            )
+        )
+
+    data["cohort_month"] = pd.to_datetime(
+        data["cohort_month"],
+        format="%Y-%m",
+        errors="coerce",
+    )
+
+    numeric_columns = [
+        "retention_month_number",
+        "cohort_customer_count",
+        "retained_customer_count",
+        "customer_retention_rate",
+    ]
+
+    for column in numeric_columns:
+        data[column] = pd.to_numeric(
+            data[column],
+            errors="coerce",
+        )
+
+    if data[
+        [
+            "cohort_month",
+            *numeric_columns,
+        ]
+    ].isna().any().any():
+        raise ValueError(
+            "stage1_cohort_retention.csv contains invalid or missing values."
+        )
+
+    duplicate_keys = int(
+        data.duplicated(
+            subset=[
+                "cohort_month",
+                "retention_month_number",
+            ]
+        ).sum()
+    )
+
+    if duplicate_keys:
+        raise ValueError(
+            "Duplicate cohort_month + retention_month_number rows found: "
+            f"{duplicate_keys}"
+        )
+
+    invalid_rates = data.loc[
+        (data["customer_retention_rate"] < 0)
+        | (data["customer_retention_rate"] > 1)
+    ]
+
+    if not invalid_rates.empty:
+        raise ValueError(
+            "Stage 1 retention rates must remain between 0 and 1."
+        )
+
+    return data.sort_values(
+        [
+            "cohort_month",
+            "retention_month_number",
+        ]
+    ).reset_index(drop=True)
+
+
+@st.cache_data(show_spinner=False)
+def load_stage1_category_data(
+    data_path: str,
+) -> pd.DataFrame:
+    """Load and validate the one-row-per-order-item Stage 1 M18 base."""
+    path = Path(data_path)
+
+    if not path.exists():
+        raise FileNotFoundError(
+            "Stage 1 category-item data file was not found:\n"
+            f"{path}\n\n"
+            "Run src/analysis/core_metrics/"
+            "prepare_stage1_supporting_data.py first."
+        )
+
+    data = pd.read_csv(
+        path,
+        encoding="utf-8-sig",
+    )
+
+    missing_columns = (
+        STAGE1_CATEGORY_REQUIRED_COLUMNS
+        - set(data.columns)
+    )
+
+    if missing_columns:
+        raise ValueError(
+            "stage1_category_item_base.csv is missing required columns: "
+            + ", ".join(
+                sorted(missing_columns)
+            )
+        )
+
+    data["order_purchase_timestamp"] = pd.to_datetime(
+        data["order_purchase_timestamp"],
+        errors="coerce",
+    )
+
+    data["purchase_date"] = pd.to_datetime(
+        data["purchase_date"],
+        errors="coerce",
+    ).dt.date
+
+    data["price"] = pd.to_numeric(
+        data["price"],
+        errors="coerce",
+    )
+
+    critical_columns = [
+        "order_id",
+        "order_item_id",
+        "order_purchase_timestamp",
+        "purchase_date",
+        "purchase_month",
+        "product_category",
+        "price",
+    ]
+
+    if data[
+        critical_columns
+    ].isna().any().any():
+        raise ValueError(
+            "stage1_category_item_base.csv contains invalid or missing values."
+        )
+
+    duplicate_keys = int(
+        data.duplicated(
+            subset=[
+                "order_id",
+                "order_item_id",
+            ]
+        ).sum()
+    )
+
+    if duplicate_keys:
+        raise ValueError(
+            "Duplicate order_id + order_item_id rows found: "
+            f"{duplicate_keys}"
+        )
+
+    if (data["price"] < 0).any():
+        raise ValueError(
+            "Stage 1 category-item data contains negative prices."
+        )
+
+    return data.sort_values(
+        [
+            "order_purchase_timestamp",
+            "order_id",
+            "order_item_id",
+        ]
+    ).reset_index(drop=True)
+
 
 @st.cache_data(show_spinner=False)
 def load_dashboard_data(
@@ -4834,6 +5216,2472 @@ def render_structural_signals(
         )
 
 # ---------------------------------------------------------------------------
+# Stage 1 core-metrics worksheet
+# ---------------------------------------------------------------------------
+
+def reset_stage1_filters(
+    minimum_date: date,
+    maximum_date: date,
+) -> None:
+    """Restore the Stage 1 date filter to the full order observation."""
+    st.session_state["stage1_date_range"] = (
+        minimum_date,
+        maximum_date,
+    )
+
+
+def render_stage1_filters(
+    data: pd.DataFrame,
+) -> dict[str, date]:
+    """Render the metric-safe Stage 1 filter set."""
+    minimum_date = data["purchase_date"].min()
+    maximum_date = data["purchase_date"].max()
+
+    with st.sidebar:
+        st.header("Stage 1 Filters")
+
+        if st.button(
+            "Reset Stage 1 filters",
+            use_container_width=True,
+            key="stage1_reset_filters",
+        ):
+            reset_stage1_filters(
+                minimum_date,
+                maximum_date,
+            )
+            st.rerun()
+
+        selected_dates = st.date_input(
+            "Date range",
+            value=(
+                minimum_date,
+                maximum_date,
+            ),
+            min_value=minimum_date,
+            max_value=maximum_date,
+            key="stage1_date_range",
+        )
+
+        st.caption(
+            "Stage 1 uses purchase date as the default business time. "
+            "Metric-specific cohorts keep their formal denominators."
+        )
+
+    if isinstance(
+        selected_dates,
+        (tuple, list),
+    ):
+        if len(selected_dates) == 2:
+            start_date, end_date = selected_dates
+        elif len(selected_dates) == 1:
+            start_date = selected_dates[0]
+            end_date = selected_dates[0]
+        else:
+            start_date = minimum_date
+            end_date = maximum_date
+    else:
+        start_date = selected_dates
+        end_date = selected_dates
+
+    return {
+        "start_date": start_date,
+        "end_date": end_date,
+    }
+
+
+def apply_stage1_date_filter(
+    data: pd.DataFrame,
+    filters: dict[str, date],
+) -> pd.DataFrame:
+    """Apply only the Stage 1 purchase-date filter."""
+    return data.loc[
+        data["purchase_date"].between(
+            filters["start_date"],
+            filters["end_date"],
+        )
+    ].copy()
+
+
+def calculate_stage1_m01_m08(
+    filtered: pd.DataFrame,
+    source_data: pd.DataFrame,
+    start_date: date,
+    end_date: date,
+) -> dict[str, float | int | None]:
+    """Calculate Stage 1 metrics M01-M08 using their formal cohorts."""
+    valid_orders = filtered.loc[
+        filtered["is_valid_order"] == 1
+    ].copy()
+
+    paid_orders = filtered.loc[
+        filtered["is_paid_delivered_order"] == 1
+    ].copy()
+
+    gmv = float(
+        paid_orders["order_payment_amount"].sum()
+    )
+
+    valid_order_count = int(
+        valid_orders["order_id"].nunique()
+    )
+
+    paid_order_count = int(
+        paid_orders["order_id"].nunique()
+    )
+
+    average_order_value = (
+        gmv / paid_order_count
+        if paid_order_count > 0
+        else None
+    )
+
+    active_customer_count = int(
+        valid_orders[
+            "customer_unique_id"
+        ].nunique()
+    )
+
+    first_purchase = (
+        source_data[
+            [
+                "customer_unique_id",
+                "first_delivered_purchase_timestamp",
+            ]
+        ]
+        .dropna(
+            subset=[
+                "customer_unique_id",
+                "first_delivered_purchase_timestamp",
+            ]
+        )
+        .drop_duplicates(
+            subset=["customer_unique_id"],
+            keep="first",
+        )
+        .copy()
+    )
+
+    first_purchase["first_purchase_date"] = (
+        first_purchase[
+            "first_delivered_purchase_timestamp"
+        ].dt.date
+    )
+
+    new_customer_count = int(
+        first_purchase.loc[
+            first_purchase[
+                "first_purchase_date"
+            ].between(
+                start_date,
+                end_date,
+            ),
+            "customer_unique_id",
+        ].nunique()
+    )
+
+    user_order_counts = (
+        valid_orders.dropna(
+            subset=["customer_unique_id"]
+        )
+        .groupby(
+            "customer_unique_id"
+        )["order_id"]
+        .nunique()
+    )
+
+    repeat_customer_count = int(
+        (user_order_counts >= 2).sum()
+    )
+
+    repeat_purchase_rate = (
+        repeat_customer_count
+        / active_customer_count
+        if active_customer_count > 0
+        else None
+    )
+
+    return {
+        "gmv": gmv,
+        "valid_order_count": valid_order_count,
+        "average_order_value": average_order_value,
+        "paid_order_count": paid_order_count,
+        "active_customer_count": active_customer_count,
+        "new_customer_count": new_customer_count,
+        "repeat_customer_count": repeat_customer_count,
+        "repeat_purchase_rate": repeat_purchase_rate,
+    }
+
+
+def render_stage1_m01_m08_cards(
+    metrics: dict[str, float | int | None],
+) -> None:
+    """Render the first eight formal Stage 1 metrics."""
+    revenue_columns = st.columns([1.7, 1, 1, 1])
+
+    revenue_columns[0].metric(
+        "M01 · GMV",
+        format_currency(
+            float(metrics["gmv"])
+        ),
+    )
+
+    revenue_columns[1].metric(
+        "M02 · Valid Orders",
+        format_integer(
+            int(metrics["valid_order_count"])
+        ),
+    )
+
+    aov = metrics["average_order_value"]
+
+    revenue_columns[2].metric(
+        "M03 · Average Order Value",
+        (
+            format_currency(float(aov))
+            if aov is not None
+            else "—"
+        ),
+    )
+
+    revenue_columns[3].metric(
+        "M04 · Paid Orders",
+        format_integer(
+            int(metrics["paid_order_count"])
+        ),
+    )
+
+    customer_columns = st.columns(4)
+
+    customer_columns[0].metric(
+        "M05 · Active Customers",
+        format_integer(
+            int(metrics["active_customer_count"])
+        ),
+    )
+
+    customer_columns[1].metric(
+        "M06 · New Customers",
+        format_integer(
+            int(metrics["new_customer_count"])
+        ),
+    )
+
+    customer_columns[2].metric(
+        "M07 · Repeat Customers",
+        format_integer(
+            int(metrics["repeat_customer_count"])
+        ),
+    )
+
+    repeat_rate = metrics[
+        "repeat_purchase_rate"
+    ]
+
+    customer_columns[3].metric(
+        "M08 · Repeat Purchase Rate",
+        (
+            format_percentage(
+                float(repeat_rate)
+            )
+            if repeat_rate is not None
+            else "—"
+        ),
+    )
+
+
+def build_stage1_m01_m08_monthly_trends(
+    filtered: pd.DataFrame,
+    source_data: pd.DataFrame,
+    start_date: date,
+    end_date: date,
+) -> pd.DataFrame:
+    """Build monthly Stage 1 M01-M08 series without inventing missing months."""
+    month_start = (
+        pd.Timestamp(start_date)
+        .to_period("M")
+        .to_timestamp()
+    )
+
+    month_end = (
+        pd.Timestamp(end_date)
+        .to_period("M")
+        .to_timestamp()
+    )
+
+    complete_months = pd.DataFrame(
+        {
+            "month": pd.date_range(
+                month_start,
+                month_end,
+                freq="MS",
+            )
+        }
+    )
+
+    source_valid_months = set(
+        source_data.loc[
+            source_data["is_valid_order"] == 1,
+            "purchase_month_start",
+        ].dropna()
+    )
+
+    complete_months[
+        "source_valid_month_observed"
+    ] = complete_months["month"].isin(
+        source_valid_months
+    )
+
+    valid_orders = filtered.loc[
+        filtered["is_valid_order"] == 1
+    ].copy()
+
+    paid_orders = filtered.loc[
+        filtered["is_paid_delivered_order"] == 1
+    ].copy()
+
+    monthly_gmv = (
+        paid_orders.groupby(
+            "purchase_month_start",
+            as_index=False,
+        )["order_payment_amount"]
+        .sum()
+        .rename(
+            columns={
+                "purchase_month_start": "month",
+                "order_payment_amount": "gmv",
+            }
+        )
+    )
+
+    monthly_valid_orders = (
+        valid_orders.groupby(
+            "purchase_month_start",
+            as_index=False,
+        )["order_id"]
+        .nunique()
+        .rename(
+            columns={
+                "purchase_month_start": "month",
+                "order_id": "valid_order_count",
+            }
+        )
+    )
+
+    monthly_paid_orders = (
+        paid_orders.groupby(
+            "purchase_month_start",
+            as_index=False,
+        )["order_id"]
+        .nunique()
+        .rename(
+            columns={
+                "purchase_month_start": "month",
+                "order_id": "paid_order_count",
+            }
+        )
+    )
+
+    monthly_active_customers = (
+        valid_orders.dropna(
+            subset=["customer_unique_id"]
+        )
+        .groupby(
+            "purchase_month_start",
+            as_index=False,
+        )["customer_unique_id"]
+        .nunique()
+        .rename(
+            columns={
+                "purchase_month_start": "month",
+                "customer_unique_id": "active_customer_count",
+            }
+        )
+    )
+
+    customer_month_orders = (
+        valid_orders.dropna(
+            subset=["customer_unique_id"]
+        )
+        .groupby(
+            [
+                "purchase_month_start",
+                "customer_unique_id",
+            ],
+            as_index=False,
+        )["order_id"]
+        .nunique()
+        .rename(
+            columns={
+                "order_id": "valid_order_count",
+            }
+        )
+    )
+
+    monthly_repeat_customers = (
+        customer_month_orders.loc[
+            customer_month_orders[
+                "valid_order_count"
+            ] >= 2
+        ]
+        .groupby(
+            "purchase_month_start",
+            as_index=False,
+        )["customer_unique_id"]
+        .nunique()
+        .rename(
+            columns={
+                "purchase_month_start": "month",
+                "customer_unique_id": "repeat_customer_count",
+            }
+        )
+    )
+
+    first_purchase = (
+        source_data[
+            [
+                "customer_unique_id",
+                "first_delivered_purchase_timestamp",
+            ]
+        ]
+        .dropna(
+            subset=[
+                "customer_unique_id",
+                "first_delivered_purchase_timestamp",
+            ]
+        )
+        .drop_duplicates(
+            subset=["customer_unique_id"],
+            keep="first",
+        )
+        .copy()
+    )
+
+    first_purchase["first_purchase_date"] = (
+        first_purchase[
+            "first_delivered_purchase_timestamp"
+        ].dt.date
+    )
+
+    first_purchase = first_purchase.loc[
+        first_purchase[
+            "first_purchase_date"
+        ].between(
+            start_date,
+            end_date,
+        )
+    ].copy()
+
+    first_purchase["month"] = (
+        first_purchase[
+            "first_delivered_purchase_timestamp"
+        ]
+        .dt.to_period("M")
+        .dt.to_timestamp()
+    )
+
+    monthly_new_customers = (
+        first_purchase.groupby(
+            "month",
+            as_index=False,
+        )["customer_unique_id"]
+        .nunique()
+        .rename(
+            columns={
+                "customer_unique_id": "new_customer_count",
+            }
+        )
+    )
+
+    trends = complete_months.copy()
+
+    for monthly_data in [
+        monthly_gmv,
+        monthly_valid_orders,
+        monthly_paid_orders,
+        monthly_active_customers,
+        monthly_new_customers,
+        monthly_repeat_customers,
+    ]:
+        trends = trends.merge(
+            monthly_data,
+            on="month",
+            how="left",
+        )
+
+    fill_zero_columns = [
+        "gmv",
+        "valid_order_count",
+        "paid_order_count",
+        "active_customer_count",
+        "new_customer_count",
+        "repeat_customer_count",
+    ]
+
+    observed_mask = trends[
+        "source_valid_month_observed"
+    ]
+
+    for column in fill_zero_columns:
+        trends.loc[
+            observed_mask
+            & trends[column].isna(),
+            column,
+        ] = 0
+
+        trends.loc[
+            ~observed_mask,
+            column,
+        ] = pd.NA
+
+    trends["average_order_value"] = (
+        trends["gmv"]
+        / trends[
+            "paid_order_count"
+        ].replace(
+            0,
+            pd.NA,
+        )
+    )
+
+    trends["repeat_purchase_rate"] = (
+        trends["repeat_customer_count"]
+        / trends[
+            "active_customer_count"
+        ].replace(
+            0,
+            pd.NA,
+        )
+    )
+
+    for column in [
+        "valid_order_count",
+        "paid_order_count",
+        "active_customer_count",
+        "new_customer_count",
+        "repeat_customer_count",
+    ]:
+        trends[column] = pd.to_numeric(
+            trends[column],
+            errors="coerce",
+        ).astype("Int64")
+
+    return trends.drop(
+        columns=[
+            "source_valid_month_observed",
+        ]
+    )
+
+
+def render_stage1_partial_month_note(
+    start_date: date,
+    end_date: date,
+) -> None:
+    """Flag partial calendar months in Stage 1 trend views."""
+    start_timestamp = pd.Timestamp(start_date)
+    end_timestamp = pd.Timestamp(end_date)
+
+    start_is_partial = (
+        start_timestamp.day != 1
+    )
+
+    end_is_partial = (
+        end_timestamp
+        != end_timestamp
+        .to_period("M")
+        .end_time
+        .normalize()
+    )
+
+    if start_is_partial or end_is_partial:
+        st.info(
+            "The selected range starts or ends within a calendar month. "
+            "The first and/or last monthly points therefore represent "
+            "partial-month results."
+        )
+
+
+def render_stage1_revenue_order_trends(
+    trends: pd.DataFrame,
+) -> None:
+    """Render M01-M04 monthly trends."""
+    tabs = st.tabs(
+        [
+            "M01 · GMV",
+            "M02 · Valid Orders",
+            "M03 · AOV",
+            "M04 · Paid Orders",
+        ]
+    )
+
+    chart_specs = [
+        (
+            "gmv",
+            "Monthly GMV",
+            "GMV (BRL)",
+            ",.2f",
+        ),
+        (
+            "valid_order_count",
+            "Monthly Valid Orders",
+            "Valid delivered orders",
+            ",d",
+        ),
+        (
+            "average_order_value",
+            "Monthly Average Order Value",
+            "Average order value (BRL)",
+            ",.2f",
+        ),
+        (
+            "paid_order_count",
+            "Monthly Paid Orders",
+            "Paid delivered orders",
+            ",d",
+        ),
+    ]
+
+    for tab, spec in zip(
+        tabs,
+        chart_specs,
+    ):
+        with tab:
+            metric, title, y_title, tooltip_format = spec
+
+            st.altair_chart(
+                create_trend_chart(
+                    trends,
+                    metric=metric,
+                    title=title,
+                    y_title=y_title,
+                    tooltip_format=tooltip_format,
+                ),
+                use_container_width=True,
+            )
+
+
+def render_stage1_customer_trends(
+    trends: pd.DataFrame,
+) -> None:
+    """Render M05-M08 monthly customer trends."""
+    tabs = st.tabs(
+        [
+            "M05 · Active",
+            "M06 · New",
+            "M07 · Repeat",
+            "M08 · Repeat Rate",
+        ]
+    )
+
+    chart_specs = [
+        (
+            "active_customer_count",
+            "Monthly Active Customers",
+            "Distinct active customers",
+            ",d",
+        ),
+        (
+            "new_customer_count",
+            "Monthly New Customers",
+            "Distinct new customers",
+            ",d",
+        ),
+        (
+            "repeat_customer_count",
+            "Monthly Repeat Customers",
+            "Distinct repeat customers",
+            ",d",
+        ),
+        (
+            "repeat_purchase_rate",
+            "Monthly Repeat Purchase Rate",
+            "Repeat purchase rate",
+            ".1%",
+        ),
+    ]
+
+    for tab, spec in zip(
+        tabs,
+        chart_specs,
+    ):
+        with tab:
+            metric, title, y_title, tooltip_format = spec
+
+            st.altair_chart(
+                create_trend_chart(
+                    trends,
+                    metric=metric,
+                    title=title,
+                    y_title=y_title,
+                    tooltip_format=tooltip_format,
+                ),
+                use_container_width=True,
+            )
+
+
+def render_stage1_filter_summary(
+    filtered: pd.DataFrame,
+    filters: dict[str, date],
+) -> None:
+    """Show Stage 1 period and cohort volumes."""
+    valid_orders = int(
+        filtered.loc[
+            filtered["is_valid_order"] == 1,
+            "order_id",
+        ].nunique()
+    )
+
+    paid_orders = int(
+        filtered.loc[
+            filtered[
+                "is_paid_delivered_order"
+            ] == 1,
+            "order_id",
+        ].nunique()
+    )
+
+    st.caption(
+        f"Selected period: {filters['start_date']} to {filters['end_date']} · "
+        f"All order rows: {len(filtered):,} · "
+        f"Valid delivered orders: {valid_orders:,} · "
+        f"Paid delivered orders: {paid_orders:,}"
+    )
+
+
+def calculate_stage1_m10_m17(
+    filtered: pd.DataFrame,
+) -> dict[str, float | int | None]:
+    """Calculate Stage 1 metrics M10-M17 with metric-specific denominators."""
+    valid_orders = filtered.loc[
+        filtered["is_valid_order"] == 1
+    ].copy()
+
+    paid_orders = filtered.loc[
+        filtered["is_paid_delivered_order"] == 1
+    ].copy()
+
+    customer_revenue = (
+        paid_orders.dropna(
+            subset=["customer_unique_id"]
+        )
+        .groupby(
+            "customer_unique_id",
+            as_index=False,
+        )["order_payment_amount"]
+        .sum()
+        .rename(
+            columns={
+                "order_payment_amount": "customer_revenue",
+            }
+        )
+    )
+
+    customer_lifetime_value = (
+        float(
+            customer_revenue[
+                "customer_revenue"
+            ].mean()
+        )
+        if not customer_revenue.empty
+        else None
+    )
+
+    active_customer_count = int(
+        valid_orders[
+            "customer_unique_id"
+        ].nunique()
+    )
+
+    valid_order_count = int(
+        valid_orders["order_id"].nunique()
+    )
+
+    average_purchase_frequency = (
+        valid_order_count
+        / active_customer_count
+        if active_customer_count > 0
+        else None
+    )
+
+    sequenced = (
+        valid_orders.dropna(
+            subset=[
+                "customer_unique_id",
+                "order_purchase_timestamp",
+            ]
+        )
+        .sort_values(
+            [
+                "customer_unique_id",
+                "order_purchase_timestamp",
+                "order_id",
+            ]
+        )
+        .copy()
+    )
+
+    sequenced["previous_purchase_timestamp"] = (
+        sequenced.groupby(
+            "customer_unique_id"
+        )["order_purchase_timestamp"]
+        .shift(1)
+    )
+
+    sequenced["interval_days"] = (
+        sequenced[
+            "order_purchase_timestamp"
+        ]
+        - sequenced[
+            "previous_purchase_timestamp"
+        ]
+    ).dt.total_seconds() / 86400.0
+
+    valid_intervals = sequenced.loc[
+        sequenced["interval_days"].notna()
+        & (sequenced["interval_days"] >= 0)
+    ].copy()
+
+    average_repurchase_interval = (
+        float(
+            valid_intervals[
+                "interval_days"
+            ].mean()
+        )
+        if not valid_intervals.empty
+        else None
+    )
+
+    delivery_orders = valid_orders.loc[
+        valid_orders["delivery_days"].notna()
+    ].copy()
+
+    average_delivery_time = (
+        float(
+            delivery_orders[
+                "delivery_days"
+            ].mean()
+        )
+        if not delivery_orders.empty
+        else None
+    )
+
+    evaluable_delivery = filtered.loc[
+        filtered["is_delivery_evaluable"] == 1
+    ].copy()
+
+    late_delivery_rate = (
+        float(
+            evaluable_delivery[
+                "is_late_delivery"
+            ].sum()
+        )
+        / len(evaluable_delivery)
+        if not evaluable_delivery.empty
+        else None
+    )
+
+    reviewed_orders = filtered.loc[
+        filtered["has_valid_review"] == 1
+    ].copy()
+
+    average_review_score = (
+        float(
+            reviewed_orders[
+                "review_score"
+            ].mean()
+        )
+        if not reviewed_orders.empty
+        else None
+    )
+
+    positive_review_rate = (
+        float(
+            reviewed_orders[
+                "is_positive_review"
+            ].sum()
+        )
+        / len(reviewed_orders)
+        if not reviewed_orders.empty
+        else None
+    )
+
+    total_order_count = int(
+        filtered["order_id"].nunique()
+    )
+
+    canceled_order_count = int(
+        filtered.loc[
+            filtered["order_status"] == "canceled",
+            "order_id",
+        ].nunique()
+    )
+
+    cancellation_rate = (
+        canceled_order_count
+        / total_order_count
+        if total_order_count > 0
+        else None
+    )
+
+    return {
+        "customer_lifetime_value": customer_lifetime_value,
+        "paying_customer_count": int(
+            customer_revenue[
+                "customer_unique_id"
+            ].nunique()
+        ),
+        "average_purchase_frequency": average_purchase_frequency,
+        "average_repurchase_interval_days": average_repurchase_interval,
+        "valid_interval_count": int(
+            len(valid_intervals)
+        ),
+        "average_delivery_days": average_delivery_time,
+        "delivery_order_count": int(
+            len(delivery_orders)
+        ),
+        "late_delivery_rate": late_delivery_rate,
+        "evaluable_delivery_order_count": int(
+            len(evaluable_delivery)
+        ),
+        "average_review_score": average_review_score,
+        "reviewed_order_count": int(
+            len(reviewed_orders)
+        ),
+        "positive_review_rate": positive_review_rate,
+        "total_order_count": total_order_count,
+        "canceled_order_count": canceled_order_count,
+        "cancellation_rate": cancellation_rate,
+    }
+
+
+def render_stage1_m10_m17_cards(
+    metrics: dict[str, float | int | None],
+) -> None:
+    """Render scalar Stage 1 metrics M10-M17."""
+    customer_columns = st.columns(3)
+
+    ltv = metrics["customer_lifetime_value"]
+    customer_columns[0].metric(
+        "M10 · Observed Revenue LTV",
+        (
+            format_currency(float(ltv))
+            if ltv is not None
+            else "—"
+        ),
+    )
+
+    frequency = metrics[
+        "average_purchase_frequency"
+    ]
+    customer_columns[1].metric(
+        "M11 · Avg Purchase Frequency",
+        (
+            f"{float(frequency):,.3f}"
+            if frequency is not None
+            else "—"
+        ),
+    )
+
+    interval = metrics[
+        "average_repurchase_interval_days"
+    ]
+    customer_columns[2].metric(
+        "M12 · Avg Repurchase Interval",
+        (
+            f"{float(interval):,.2f} days"
+            if interval is not None
+            else "—"
+        ),
+    )
+
+    experience_columns = st.columns(4)
+
+    delivery = metrics["average_delivery_days"]
+    experience_columns[0].metric(
+        "M13 · Avg Delivery Time",
+        (
+            f"{float(delivery):,.2f} days"
+            if delivery is not None
+            else "—"
+        ),
+    )
+
+    late_rate = metrics["late_delivery_rate"]
+    experience_columns[1].metric(
+        "M14 · Late Delivery Rate",
+        (
+            format_percentage(
+                float(late_rate)
+            )
+            if late_rate is not None
+            else "—"
+        ),
+    )
+
+    review_score = metrics[
+        "average_review_score"
+    ]
+    experience_columns[2].metric(
+        "M15 · Avg Review Score",
+        (
+            f"{float(review_score):,.2f} / 5"
+            if review_score is not None
+            else "—"
+        ),
+    )
+
+    positive_rate = metrics[
+        "positive_review_rate"
+    ]
+    experience_columns[3].metric(
+        "M16 · Positive Review Rate",
+        (
+            format_percentage(
+                float(positive_rate)
+            )
+            if positive_rate is not None
+            else "—"
+        ),
+    )
+
+    cancellation_rate = metrics[
+        "cancellation_rate"
+    ]
+    st.metric(
+        "M17 · Cancellation Rate",
+        (
+            format_percentage(
+                float(cancellation_rate)
+            )
+            if cancellation_rate is not None
+            else "—"
+        ),
+    )
+
+
+def filter_stage1_cohort_months(
+    cohort: pd.DataFrame,
+    start_date: date,
+    end_date: date,
+) -> pd.DataFrame:
+    """Filter M09 by cohort start month without truncating observed activity."""
+    start_month = (
+        pd.Timestamp(start_date)
+        .to_period("M")
+        .to_timestamp()
+    )
+
+    end_month = (
+        pd.Timestamp(end_date)
+        .to_period("M")
+        .to_timestamp()
+    )
+
+    return cohort.loc[
+        cohort["cohort_month"].between(
+            start_month,
+            end_month,
+        )
+    ].copy()
+
+
+def create_stage1_retention_heatmap(
+    cohort: pd.DataFrame,
+) -> alt.Chart:
+    """Create the M09 natural-month cohort retention heatmap."""
+    chart_data = cohort.copy()
+
+    chart_data["cohort_label"] = (
+        chart_data["cohort_month"]
+        .dt.strftime("%Y-%m")
+    )
+
+    chart_data["retention_pct"] = (
+        chart_data[
+            "customer_retention_rate"
+        ] * 100
+    )
+
+    return (
+        alt.Chart(chart_data)
+        .mark_rect()
+        .encode(
+            x=alt.X(
+                "retention_month_number:O",
+                title="Retention month number",
+            ),
+            y=alt.Y(
+                "cohort_label:O",
+                title="Cohort month",
+                sort=alt.SortField(
+                    field="cohort_month",
+                    order="ascending",
+                ),
+            ),
+            color=alt.Color(
+                "customer_retention_rate:Q",
+                title="Retention rate",
+                scale=alt.Scale(
+                    domain=[0, 1],
+                ),
+            ),
+            tooltip=[
+                alt.Tooltip(
+                    "cohort_label:N",
+                    title="Cohort month",
+                ),
+                alt.Tooltip(
+                    "retention_month_number:O",
+                    title="Retention month",
+                ),
+                alt.Tooltip(
+                    "cohort_customer_count:Q",
+                    title="Cohort customers",
+                    format=",d",
+                ),
+                alt.Tooltip(
+                    "retained_customer_count:Q",
+                    title="Retained customers",
+                    format=",d",
+                ),
+                alt.Tooltip(
+                    "retention_pct:Q",
+                    title="Retention rate (%)",
+                    format=",.2f",
+                ),
+            ],
+        )
+        .properties(
+            title="M09 · Natural-Month Customer Retention",
+            height=480,
+        )
+    )
+
+
+def build_stage1_customer_revenue(
+    filtered: pd.DataFrame,
+) -> pd.DataFrame:
+    """Build per-customer positive delivered revenue for M10."""
+    return (
+        filtered.loc[
+            filtered[
+                "is_paid_delivered_order"
+            ] == 1
+        ]
+        .dropna(
+            subset=["customer_unique_id"]
+        )
+        .groupby(
+            "customer_unique_id",
+            as_index=False,
+        )["order_payment_amount"]
+        .sum()
+        .rename(
+            columns={
+                "order_payment_amount": "customer_revenue",
+            }
+        )
+    )
+
+
+def create_stage1_ltv_distribution(
+    customer_revenue: pd.DataFrame,
+) -> alt.Chart:
+    """Create a customer-revenue distribution supporting M10."""
+    return (
+        alt.Chart(customer_revenue)
+        .mark_bar()
+        .encode(
+            x=alt.X(
+                "customer_revenue:Q",
+                bin=alt.Bin(maxbins=35),
+                title="Observed customer revenue (BRL)",
+            ),
+            y=alt.Y(
+                "count():Q",
+                title="Paying customers",
+            ),
+            tooltip=[
+                alt.Tooltip(
+                    "count():Q",
+                    title="Paying customers",
+                    format=",d",
+                ),
+            ],
+        )
+        .properties(
+            title="Customer Revenue Distribution",
+            height=360,
+        )
+    )
+
+
+def build_stage1_customer_frequency(
+    filtered: pd.DataFrame,
+) -> pd.DataFrame:
+    """Build delivered-order counts per active customer for M11."""
+    customer_frequency = (
+        filtered.loc[
+            filtered["is_valid_order"] == 1
+        ]
+        .dropna(
+            subset=["customer_unique_id"]
+        )
+        .groupby(
+            "customer_unique_id",
+            as_index=False,
+        )["order_id"]
+        .nunique()
+        .rename(
+            columns={
+                "order_id": "purchase_frequency",
+            }
+        )
+    )
+
+    return (
+        customer_frequency.groupby(
+            "purchase_frequency",
+            as_index=False,
+        )["customer_unique_id"]
+        .nunique()
+        .rename(
+            columns={
+                "customer_unique_id": "customer_count",
+            }
+        )
+        .sort_values(
+            "purchase_frequency"
+        )
+    )
+
+
+def create_stage1_frequency_chart(
+    frequency: pd.DataFrame,
+) -> alt.Chart:
+    """Create the M11 customer purchase-frequency distribution."""
+    return (
+        alt.Chart(frequency)
+        .mark_bar()
+        .encode(
+            x=alt.X(
+                "purchase_frequency:O",
+                title="Delivered orders per active customer",
+            ),
+            y=alt.Y(
+                "customer_count:Q",
+                title="Active customers",
+            ),
+            tooltip=[
+                alt.Tooltip(
+                    "purchase_frequency:O",
+                    title="Delivered orders",
+                ),
+                alt.Tooltip(
+                    "customer_count:Q",
+                    title="Active customers",
+                    format=",d",
+                ),
+            ],
+        )
+        .properties(
+            title="Active Customers by Purchase Frequency",
+            height=360,
+        )
+    )
+
+
+def build_stage1_repurchase_intervals(
+    filtered: pd.DataFrame,
+) -> pd.DataFrame:
+    """Build all legal adjacent delivered-order intervals for M12."""
+    sequenced = (
+        filtered.loc[
+            filtered["is_valid_order"] == 1
+        ]
+        .dropna(
+            subset=[
+                "customer_unique_id",
+                "order_purchase_timestamp",
+            ]
+        )
+        .sort_values(
+            [
+                "customer_unique_id",
+                "order_purchase_timestamp",
+                "order_id",
+            ]
+        )
+        .copy()
+    )
+
+    sequenced["previous_purchase_timestamp"] = (
+        sequenced.groupby(
+            "customer_unique_id"
+        )["order_purchase_timestamp"]
+        .shift(1)
+    )
+
+    sequenced["interval_days"] = (
+        sequenced[
+            "order_purchase_timestamp"
+        ]
+        - sequenced[
+            "previous_purchase_timestamp"
+        ]
+    ).dt.total_seconds() / 86400.0
+
+    return sequenced.loc[
+        sequenced["interval_days"].notna()
+        & (sequenced["interval_days"] >= 0),
+        [
+            "customer_unique_id",
+            "interval_days",
+        ],
+    ].copy()
+
+
+def create_stage1_interval_chart(
+    intervals: pd.DataFrame,
+) -> alt.Chart:
+    """Create the M12 adjacent-order interval distribution."""
+    return (
+        alt.Chart(intervals)
+        .mark_bar()
+        .encode(
+            x=alt.X(
+                "interval_days:Q",
+                bin=alt.Bin(maxbins=35),
+                title="Adjacent delivered-order interval (days)",
+            ),
+            y=alt.Y(
+                "count():Q",
+                title="Valid adjacent order intervals",
+            ),
+            tooltip=[
+                alt.Tooltip(
+                    "count():Q",
+                    title="Intervals",
+                    format=",d",
+                ),
+            ],
+        )
+        .properties(
+            title="Repurchase Interval Distribution",
+            height=360,
+        )
+    )
+
+
+def build_stage1_m13_m17_monthly_trends(
+    filtered: pd.DataFrame,
+    source_data: pd.DataFrame,
+    start_date: date,
+    end_date: date,
+) -> pd.DataFrame:
+    """Build monthly M13-M17 series with denominator-aware missing values."""
+    month_start = (
+        pd.Timestamp(start_date)
+        .to_period("M")
+        .to_timestamp()
+    )
+
+    month_end = (
+        pd.Timestamp(end_date)
+        .to_period("M")
+        .to_timestamp()
+    )
+
+    trends = pd.DataFrame(
+        {
+            "month": pd.date_range(
+                month_start,
+                month_end,
+                freq="MS",
+            )
+        }
+    )
+
+    valid_source_months = set(
+        source_data.loc[
+            source_data["is_valid_order"] == 1,
+            "purchase_month_start",
+        ].dropna()
+    )
+
+    all_source_months = set(
+        source_data[
+            "purchase_month_start"
+        ].dropna()
+    )
+
+    trends[
+        "valid_source_month_observed"
+    ] = trends["month"].isin(
+        valid_source_months
+    )
+
+    trends[
+        "all_source_month_observed"
+    ] = trends["month"].isin(
+        all_source_months
+    )
+
+    delivery = filtered.loc[
+        (filtered["is_valid_order"] == 1)
+        & filtered["delivery_days"].notna()
+    ].copy()
+
+    monthly_delivery = (
+        delivery.groupby(
+            "purchase_month_start",
+            as_index=False,
+        )["delivery_days"]
+        .mean()
+        .rename(
+            columns={
+                "purchase_month_start": "month",
+                "delivery_days": "average_delivery_days",
+            }
+        )
+    )
+
+    evaluable = filtered.loc[
+        filtered["is_delivery_evaluable"] == 1
+    ].copy()
+
+    monthly_late = (
+        evaluable.groupby(
+            "purchase_month_start",
+            as_index=False,
+        )
+        .agg(
+            evaluable_delivery_orders=(
+                "order_id",
+                "nunique",
+            ),
+            late_delivery_orders=(
+                "is_late_delivery",
+                "sum",
+            ),
+        )
+        .rename(
+            columns={
+                "purchase_month_start": "month",
+            }
+        )
+    )
+
+    monthly_late[
+        "late_delivery_rate"
+    ] = (
+        monthly_late[
+            "late_delivery_orders"
+        ]
+        / monthly_late[
+            "evaluable_delivery_orders"
+        ].replace(
+            0,
+            pd.NA,
+        )
+    )
+
+    reviewed = filtered.loc[
+        filtered["has_valid_review"] == 1
+    ].copy()
+
+    monthly_reviews = (
+        reviewed.groupby(
+            "purchase_month_start",
+            as_index=False,
+        )
+        .agg(
+            average_review_score=(
+                "review_score",
+                "mean",
+            ),
+            reviewed_orders=(
+                "order_id",
+                "nunique",
+            ),
+            positive_review_orders=(
+                "is_positive_review",
+                "sum",
+            ),
+        )
+        .rename(
+            columns={
+                "purchase_month_start": "month",
+            }
+        )
+    )
+
+    monthly_reviews[
+        "positive_review_rate"
+    ] = (
+        monthly_reviews[
+            "positive_review_orders"
+        ]
+        / monthly_reviews[
+            "reviewed_orders"
+        ].replace(
+            0,
+            pd.NA,
+        )
+    )
+
+    monthly_cancellation = (
+        filtered.groupby(
+            "purchase_month_start",
+            as_index=False,
+        )
+        .agg(
+            total_orders=(
+                "order_id",
+                "nunique",
+            ),
+            canceled_orders=(
+                "order_status",
+                lambda values: int(
+                    (values == "canceled").sum()
+                ),
+            ),
+        )
+        .rename(
+            columns={
+                "purchase_month_start": "month",
+            }
+        )
+    )
+
+    monthly_cancellation[
+        "cancellation_rate"
+    ] = (
+        monthly_cancellation[
+            "canceled_orders"
+        ]
+        / monthly_cancellation[
+            "total_orders"
+        ].replace(
+            0,
+            pd.NA,
+        )
+    )
+
+    for monthly_data in [
+        monthly_delivery,
+        monthly_late[
+            [
+                "month",
+                "late_delivery_rate",
+            ]
+        ],
+        monthly_reviews[
+            [
+                "month",
+                "average_review_score",
+                "positive_review_rate",
+            ]
+        ],
+        monthly_cancellation[
+            [
+                "month",
+                "total_orders",
+                "canceled_orders",
+                "cancellation_rate",
+            ]
+        ],
+    ]:
+        trends = trends.merge(
+            monthly_data,
+            on="month",
+            how="left",
+        )
+
+    for column in [
+        "average_delivery_days",
+        "late_delivery_rate",
+        "average_review_score",
+        "positive_review_rate",
+    ]:
+        trends.loc[
+            ~trends[
+                "valid_source_month_observed"
+            ],
+            column,
+        ] = pd.NA
+
+    cancellation_columns = [
+        "total_orders",
+        "canceled_orders",
+        "cancellation_rate",
+    ]
+
+    trends.loc[
+        ~trends[
+            "all_source_month_observed"
+        ],
+        cancellation_columns,
+    ] = pd.NA
+
+    observed_missing_cancellation = (
+        trends[
+            "all_source_month_observed"
+        ]
+        & trends[
+            "total_orders"
+        ].isna()
+    )
+
+    trends.loc[
+        observed_missing_cancellation,
+        [
+            "total_orders",
+            "canceled_orders",
+        ],
+    ] = 0
+
+    trends.loc[
+        observed_missing_cancellation,
+        "cancellation_rate",
+    ] = pd.NA
+
+    return trends.drop(
+        columns=[
+            "valid_source_month_observed",
+            "all_source_month_observed",
+        ]
+    )
+
+
+def create_stage1_cancellation_chart(
+    trends: pd.DataFrame,
+) -> alt.Chart:
+    """Create the M17 monthly cancellation chart with denominator context."""
+    chart_data = trends[
+        [
+            "month",
+            "total_orders",
+            "canceled_orders",
+            "cancellation_rate",
+        ]
+    ].copy()
+
+    return (
+        alt.Chart(chart_data)
+        .mark_line(
+            point=True,
+            strokeWidth=2,
+        )
+        .encode(
+            x=alt.X(
+                "month:T",
+                title="Month",
+                axis=alt.Axis(
+                    format="%Y-%m",
+                    labelAngle=-45,
+                ),
+            ),
+            y=alt.Y(
+                "cancellation_rate:Q",
+                title="Cancellation rate",
+                scale=alt.Scale(
+                    domain=[0, 1],
+                ),
+            ),
+            tooltip=[
+                alt.Tooltip(
+                    "month:T",
+                    title="Month",
+                    format="%Y-%m",
+                ),
+                alt.Tooltip(
+                    "cancellation_rate:Q",
+                    title="Cancellation rate",
+                    format=".2%",
+                ),
+                alt.Tooltip(
+                    "canceled_orders:Q",
+                    title="Canceled orders",
+                    format=",.0f",
+                ),
+                alt.Tooltip(
+                    "total_orders:Q",
+                    title="All orders",
+                    format=",.0f",
+                ),
+            ],
+        )
+        .properties(
+            title="Monthly Cancellation Rate",
+            height=390,
+        )
+        .interactive(
+            bind_y=False,
+        )
+    )
+
+
+def render_stage1_delivery_review_trends(
+    trends: pd.DataFrame,
+) -> None:
+    """Render monthly M13-M16 delivery and review trends."""
+    tabs = st.tabs(
+        [
+            "M13 · Delivery Time",
+            "M14 · Late Rate",
+            "M15 · Review Score",
+            "M16 · Positive Rate",
+        ]
+    )
+
+    chart_specs = [
+        (
+            "average_delivery_days",
+            "Monthly Average Delivery Time",
+            "Average delivery time (days)",
+            ",.2f",
+        ),
+        (
+            "late_delivery_rate",
+            "Monthly Late Delivery Rate",
+            "Late delivery rate",
+            ".1%",
+        ),
+        (
+            "average_review_score",
+            "Monthly Average Review Score",
+            "Average review score",
+            ",.2f",
+        ),
+        (
+            "positive_review_rate",
+            "Monthly Positive Review Rate",
+            "Positive review rate",
+            ".1%",
+        ),
+    ]
+
+    for tab, spec in zip(
+        tabs,
+        chart_specs,
+    ):
+        with tab:
+            metric, title, y_title, tooltip_format = spec
+
+            st.altair_chart(
+                create_trend_chart(
+                    trends,
+                    metric=metric,
+                    title=title,
+                    y_title=y_title,
+                    tooltip_format=tooltip_format,
+                ),
+                use_container_width=True,
+            )
+
+
+def filter_stage1_category_data(
+    category_data: pd.DataFrame,
+    start_date: date,
+    end_date: date,
+) -> pd.DataFrame:
+    """Apply the Stage 1 purchase-date window to M18 item-grain data."""
+    return category_data.loc[
+        category_data[
+            "purchase_date"
+        ].between(
+            start_date,
+            end_date,
+        )
+    ].copy()
+
+
+def build_stage1_category_share(
+    category_data: pd.DataFrame,
+) -> pd.DataFrame:
+    """Build M18 category sales amount and share from cleaned item prices."""
+    if category_data.empty:
+        return pd.DataFrame(
+            columns=[
+                "product_category",
+                "category_sales_amount",
+                "category_sales_share",
+            ]
+        )
+
+    summary = (
+        category_data.groupby(
+            "product_category",
+            as_index=False,
+            dropna=False,
+        )["price"]
+        .sum()
+        .rename(
+            columns={
+                "price": "category_sales_amount",
+            }
+        )
+    )
+
+    total_sales = float(
+        summary[
+            "category_sales_amount"
+        ].sum()
+    )
+
+    summary[
+        "category_sales_share"
+    ] = (
+        summary[
+            "category_sales_amount"
+        ]
+        / total_sales
+        if total_sales > 0
+        else pd.NA
+    )
+
+    return summary.sort_values(
+        [
+            "category_sales_amount",
+            "product_category",
+        ],
+        ascending=[
+            False,
+            True,
+        ],
+    ).reset_index(drop=True)
+
+
+def create_stage1_category_share_chart(
+    category_share: pd.DataFrame,
+) -> alt.Chart:
+    """Create the M18 ranked category-sales-share chart."""
+    chart_data = category_share.copy()
+
+    chart_data["category_sales_pct"] = (
+        chart_data[
+            "category_sales_share"
+        ] * 100
+    )
+
+    return (
+        alt.Chart(chart_data)
+        .mark_bar()
+        .encode(
+            y=alt.Y(
+                "product_category:N",
+                title="Product category",
+                sort="-x",
+            ),
+            x=alt.X(
+                "category_sales_pct:Q",
+                title="Category sales share (%)",
+            ),
+            tooltip=[
+                alt.Tooltip(
+                    "product_category:N",
+                    title="Product category",
+                ),
+                alt.Tooltip(
+                    "category_sales_amount:Q",
+                    title="Product sales (BRL)",
+                    format=",.2f",
+                ),
+                alt.Tooltip(
+                    "category_sales_pct:Q",
+                    title="Sales share (%)",
+                    format=",.2f",
+                ),
+            ],
+        )
+        .properties(
+            title="M18 · Category Sales Share",
+            height=430,
+        )
+    )
+
+
+def render_stage1_dashboard() -> None:
+    """Render the complete Stage 1 core-metrics workbook M01-M18."""
+    st.header("Stage 1 · Core Metrics")
+
+    st.write(
+        "Interactive view of the formal Stage 1 18-metric system. "
+        "Each metric preserves its own denominator, grain, and business scope."
+    )
+
+    try:
+        data = load_stage1_order_data(
+            str(STAGE1_ORDER_DATA_PATH)
+        )
+        cohort_data = load_stage1_cohort_data(
+            str(STAGE1_COHORT_DATA_PATH)
+        )
+        category_data = load_stage1_category_data(
+            str(STAGE1_CATEGORY_DATA_PATH)
+        )
+    except (
+        FileNotFoundError,
+        ValueError,
+        pd.errors.ParserError,
+    ) as error:
+        st.error(str(error))
+        st.stop()
+
+    filters = render_stage1_filters(
+        data
+    )
+
+    if (
+        filters["start_date"]
+        > filters["end_date"]
+    ):
+        st.error(
+            "The start date cannot be later than the end date."
+        )
+        st.stop()
+
+    filtered = apply_stage1_date_filter(
+        data,
+        filters,
+    )
+
+    render_stage1_filter_summary(
+        filtered,
+        filters,
+    )
+
+    if filtered.empty:
+        st.warning(
+            "No orders match the selected Stage 1 date range."
+        )
+        st.stop()
+
+    metrics_m01_m08 = calculate_stage1_m01_m08(
+        filtered,
+        data,
+        filters["start_date"],
+        filters["end_date"],
+    )
+
+    metrics_m10_m17 = calculate_stage1_m10_m17(
+        filtered
+    )
+
+    trends_m01_m08 = build_stage1_m01_m08_monthly_trends(
+        filtered,
+        data,
+        filters["start_date"],
+        filters["end_date"],
+    )
+
+    trends_m13_m17 = build_stage1_m13_m17_monthly_trends(
+        filtered,
+        data,
+        filters["start_date"],
+        filters["end_date"],
+    )
+
+    selected_cohort = filter_stage1_cohort_months(
+        cohort_data,
+        filters["start_date"],
+        filters["end_date"],
+    )
+
+    selected_category_data = filter_stage1_category_data(
+        category_data,
+        filters["start_date"],
+        filters["end_date"],
+    )
+
+    category_share = build_stage1_category_share(
+        selected_category_data
+    )
+
+    worksheet_tabs = st.tabs(
+        [
+            "Overview",
+            "Revenue & Orders",
+            "Customers & Retention",
+            "Delivery & Reviews",
+            "Operations & Categories",
+        ]
+    )
+
+    with worksheet_tabs[0]:
+        st.subheader("Stage 1 Metric Overview")
+
+        st.caption(
+            "The cards preserve metric-specific formal cohorts. Valid orders "
+            "include all delivered orders; GMV/AOV/Paid Orders use positive-"
+            "payment delivered orders; cancellation uses all order statuses."
+        )
+
+        render_stage1_m01_m08_cards(
+            metrics_m01_m08
+        )
+
+        st.divider()
+
+        render_stage1_m10_m17_cards(
+            metrics_m10_m17
+        )
+
+        st.info(
+            "M09 Customer Retention and M18 Category Sales Share are "
+            "distributional metrics rather than single scalar KPIs. "
+            "Use their dedicated workbook tabs for the full interactive views."
+        )
+
+        overview_support = st.columns(2)
+
+        overview_support[0].metric(
+            "M09 · Cohort Start Months Shown",
+            format_integer(
+                int(
+                    selected_cohort[
+                        "cohort_month"
+                    ].nunique()
+                )
+            ),
+        )
+
+        overview_support[1].metric(
+            "M18 · Categories Shown",
+            format_integer(
+                int(
+                    category_share[
+                        "product_category"
+                    ].nunique()
+                )
+            ),
+        )
+
+        st.caption(
+            "M06 New Customers uses each customer's first delivered purchase "
+            "from the complete observed history before the date filter. "
+            "M07-M08 and M10-M12 are recalculated inside the selected "
+            "analysis window."
+        )
+
+    with worksheet_tabs[1]:
+        st.subheader(
+            "Revenue & Orders · M01-M04"
+        )
+
+        st.caption(
+            "Calendar months with no delivered source orders remain gaps "
+            "(NULL), rather than being silently converted to zero."
+        )
+
+        render_stage1_partial_month_note(
+            filters["start_date"],
+            filters["end_date"],
+        )
+
+        render_stage1_revenue_order_trends(
+            trends_m01_m08
+        )
+
+    with worksheet_tabs[2]:
+        st.subheader(
+            "Customers & Retention · M05-M12"
+        )
+
+        customer_tabs = st.tabs(
+            [
+                "M05-M08 · Customer Trends",
+                "M09 · Retention",
+                "M10 · LTV",
+                "M11 · Frequency",
+                "M12 · Repurchase Interval",
+            ]
+        )
+
+        with customer_tabs[0]:
+            st.caption(
+                "Active and repeat customers use customer_unique_id. "
+                "Monthly repeat customers have at least two distinct delivered "
+                "orders within that calendar month."
+            )
+
+            render_stage1_partial_month_note(
+                filters["start_date"],
+                filters["end_date"],
+            )
+
+            render_stage1_customer_trends(
+                trends_m01_m08
+            )
+
+        with customer_tabs[1]:
+            st.caption(
+                "The date selector filters cohort start months only. "
+                "Already observed activity after each selected cohort's first "
+                "month remains in the retention calculation, so the dashboard "
+                "does not manufacture right-censored zeros."
+            )
+
+            if selected_cohort.empty:
+                st.info(
+                    "No Stage 1 cohort starts fall inside the selected date range."
+                )
+            else:
+                st.altair_chart(
+                    create_stage1_retention_heatmap(
+                        selected_cohort
+                    ),
+                    use_container_width=True,
+                )
+
+                st.caption(
+                    f"Cohort starts shown: "
+                    f"{selected_cohort['cohort_month'].nunique():,} · "
+                    f"Retention cells shown: {len(selected_cohort):,}"
+                )
+
+        with customer_tabs[2]:
+            ltv = metrics_m10_m17[
+                "customer_lifetime_value"
+            ]
+
+            ltv_columns = st.columns(2)
+
+            ltv_columns[0].metric(
+                "M10 · Observed Revenue LTV",
+                (
+                    format_currency(
+                        float(ltv)
+                    )
+                    if ltv is not None
+                    else "—"
+                ),
+            )
+
+            ltv_columns[1].metric(
+                "Paying Customers",
+                format_integer(
+                    int(
+                        metrics_m10_m17[
+                            "paying_customer_count"
+                        ]
+                    )
+                ),
+            )
+
+            customer_revenue = build_stage1_customer_revenue(
+                filtered
+            )
+
+            if not customer_revenue.empty:
+                st.altair_chart(
+                    create_stage1_ltv_distribution(
+                        customer_revenue
+                    ),
+                    use_container_width=True,
+                )
+
+            st.caption(
+                "M10 is observed-period revenue LTV: positive delivered "
+                "order-level payments are summed per customer, then averaged. "
+                "It is not profit LTV and does not subtract costs or CAC."
+            )
+
+        with customer_tabs[3]:
+            frequency = metrics_m10_m17[
+                "average_purchase_frequency"
+            ]
+
+            st.metric(
+                "M11 · Average Purchase Frequency",
+                (
+                    f"{float(frequency):,.3f}"
+                    if frequency is not None
+                    else "—"
+                ),
+            )
+
+            frequency_data = build_stage1_customer_frequency(
+                filtered
+            )
+
+            if not frequency_data.empty:
+                st.altair_chart(
+                    create_stage1_frequency_chart(
+                        frequency_data
+                    ),
+                    use_container_width=True,
+                )
+
+            st.caption(
+                "M11 = distinct delivered orders / active "
+                "customer_unique_id users inside the selected window."
+            )
+
+        with customer_tabs[4]:
+            interval = metrics_m10_m17[
+                "average_repurchase_interval_days"
+            ]
+
+            interval_columns = st.columns(2)
+
+            interval_columns[0].metric(
+                "M12 · Average Repurchase Interval",
+                (
+                    f"{float(interval):,.2f} days"
+                    if interval is not None
+                    else "—"
+                ),
+            )
+
+            interval_columns[1].metric(
+                "Valid Adjacent Intervals",
+                format_integer(
+                    int(
+                        metrics_m10_m17[
+                            "valid_interval_count"
+                        ]
+                    )
+                ),
+            )
+
+            intervals = build_stage1_repurchase_intervals(
+                filtered
+            )
+
+            if intervals.empty:
+                st.info(
+                    "The selected window contains no legal adjacent "
+                    "delivered-order intervals."
+                )
+            else:
+                st.altair_chart(
+                    create_stage1_interval_chart(
+                        intervals
+                    ),
+                    use_container_width=True,
+                )
+
+            st.caption(
+                "M12 gives every legal adjacent delivered-order interval "
+                "equal weight. It is not an equal-weight average of each "
+                "customer's personal mean."
+            )
+
+    with worksheet_tabs[3]:
+        st.subheader(
+            "Delivery & Reviews · M13-M16"
+        )
+
+        delivery_review_columns = st.columns(4)
+
+        delivery = metrics_m10_m17[
+            "average_delivery_days"
+        ]
+        delivery_review_columns[0].metric(
+            "M13 · Avg Delivery Time",
+            (
+                f"{float(delivery):,.2f} days"
+                if delivery is not None
+                else "—"
+            ),
+        )
+
+        late_rate = metrics_m10_m17[
+            "late_delivery_rate"
+        ]
+        delivery_review_columns[1].metric(
+            "M14 · Late Delivery Rate",
+            (
+                format_percentage(
+                    float(late_rate)
+                )
+                if late_rate is not None
+                else "—"
+            ),
+        )
+
+        review_score = metrics_m10_m17[
+            "average_review_score"
+        ]
+        delivery_review_columns[2].metric(
+            "M15 · Avg Review Score",
+            (
+                f"{float(review_score):,.2f} / 5"
+                if review_score is not None
+                else "—"
+            ),
+        )
+
+        positive_rate = metrics_m10_m17[
+            "positive_review_rate"
+        ]
+        delivery_review_columns[3].metric(
+            "M16 · Positive Review Rate",
+            (
+                format_percentage(
+                    float(positive_rate)
+                )
+                if positive_rate is not None
+                else "—"
+            ),
+        )
+
+        st.caption(
+            "M13 uses purchase-to-customer-delivery days. M14 uses only "
+            "evaluable delivered orders. M15-M16 use one deterministic "
+            "representative valid review per delivered order."
+        )
+
+        render_stage1_partial_month_note(
+            filters["start_date"],
+            filters["end_date"],
+        )
+
+        render_stage1_delivery_review_trends(
+            trends_m13_m17
+        )
+
+    with worksheet_tabs[4]:
+        st.subheader(
+            "Operations & Categories · M17-M18"
+        )
+
+        cancellation_rate = metrics_m10_m17[
+            "cancellation_rate"
+        ]
+
+        cancellation_columns = st.columns(3)
+
+        cancellation_columns[0].metric(
+            "M17 · Cancellation Rate",
+            (
+                format_percentage(
+                    float(cancellation_rate)
+                )
+                if cancellation_rate is not None
+                else "—"
+            ),
+        )
+
+        cancellation_columns[1].metric(
+            "Canceled Orders",
+            format_integer(
+                int(
+                    metrics_m10_m17[
+                        "canceled_order_count"
+                    ]
+                )
+            ),
+        )
+
+        cancellation_columns[2].metric(
+            "All Orders",
+            format_integer(
+                int(
+                    metrics_m10_m17[
+                        "total_order_count"
+                    ]
+                )
+            ),
+        )
+
+        st.altair_chart(
+            create_stage1_cancellation_chart(
+                trends_m13_m17
+            ),
+            use_container_width=True,
+        )
+
+        st.caption(
+            "M17 is the exception to the delivered-order default: "
+            "the numerator is canceled orders and the denominator is "
+            "all order statuses in the selected purchase-date window. "
+            "Boundary or low-volume months can produce extreme percentages; "
+            "hover over each point to inspect canceled and total order counts "
+            "before comparing it with a complete operating month."
+        )
+
+        st.divider()
+
+        if category_share.empty:
+            st.info(
+                "No delivered category-item sales fall inside the selected "
+                "date range."
+            )
+        else:
+            category_total_sales = float(
+                category_share[
+                    "category_sales_amount"
+                ].sum()
+            )
+
+            category_columns = st.columns(2)
+
+            category_columns[0].metric(
+                "M18 · Product Sales Total",
+                format_currency(
+                    category_total_sales
+                ),
+            )
+
+            category_columns[1].metric(
+                "Categories",
+                format_integer(
+                    int(
+                        category_share[
+                            "product_category"
+                        ].nunique()
+                    )
+                ),
+            )
+
+            top_n_options: list[int | str] = [
+                10,
+                15,
+                20,
+                "All",
+            ]
+
+            selected_top_n = st.selectbox(
+                "M18 categories shown",
+                options=top_n_options,
+                index=0,
+                key="stage1_category_top_n",
+            )
+
+            chart_data = (
+                category_share
+                if selected_top_n == "All"
+                else category_share.head(
+                    int(selected_top_n)
+                )
+            )
+
+            st.altair_chart(
+                create_stage1_category_share_chart(
+                    chart_data
+                ),
+                use_container_width=True,
+            )
+
+            st.caption(
+                "M18 sales use SUM(order_items.price) for delivered orders, "
+                "exclude freight, and are not GMV. Unknown categories remain "
+                "in the full denominator even when only Top N bars are shown. "
+                f"Selected-window category sales: "
+                f"{format_currency(category_total_sales)}."
+            )
+
+    st.caption(
+        "Stage 1 data sources: "
+        "outputs/data/01_core_metrics/stage1_order_metric_base.csv · "
+        "stage1_cohort_retention.csv · "
+        "stage1_category_item_base.csv"
+    )
+
+
+# ---------------------------------------------------------------------------
 # Dashboard page
 # ---------------------------------------------------------------------------
 
@@ -4853,15 +7701,9 @@ def render_filter_summary(
     )
 
 
-def main() -> None:
-    """Run the KPI and monthly trend dashboard."""
-    st.set_page_config(
-        page_title="E-commerce Core KPI Dashboard",
-        page_icon="📊",
-        layout="wide",
-    )
-
-    st.title("E-commerce Core KPI Dashboard")
+def render_stage2_dashboard() -> None:
+    """Render the existing Stage 2 business-analysis dashboard."""
+    st.header("Stage 2 · Business Analysis")
 
     st.write(
         "Use the global filters to review paid delivered order KPIs "
@@ -4976,6 +7818,42 @@ def main() -> None:
         "outputs/data/02_business_overview/"
         "dashboard_order_payment_detail.csv"
     )
+
+
+def main() -> None:
+    """Run the workbook-style Stage 1 / Stage 2 dashboard."""
+    st.set_page_config(
+        page_title="Brazil / Olist E-commerce Analytics",
+        page_icon="📊",
+        layout="wide",
+    )
+
+    st.title(
+        "Brazil / Olist E-commerce Analytics"
+    )
+
+    worksheet = st.radio(
+        "Worksheet",
+        options=[
+            "Stage 1 · Core Metrics",
+            "Stage 2 · Business Analysis",
+        ],
+        horizontal=True,
+        label_visibility="collapsed",
+        key="dashboard_worksheet",
+    )
+
+    st.caption(
+        "Workbook view: Stage 1 contains the formal core-metric system; "
+        "Stage 2 contains the existing business-analysis dashboard."
+    )
+
+    st.divider()
+
+    if worksheet == "Stage 1 · Core Metrics":
+        render_stage1_dashboard()
+    else:
+        render_stage2_dashboard()
 
 
 if __name__ == "__main__":
