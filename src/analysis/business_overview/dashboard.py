@@ -10,7 +10,7 @@ Current scope
    - Order value band
 2. Five KPI cards:
    - GMV
-   - Orders
+   - Paid Delivered Orders
    - Average Order Value
    - New Users
    - Active Users
@@ -30,12 +30,14 @@ One row per order_id + payment_type.
 
 Metric behavior under payment filters
 -------------------------------------
-- GMV: actual payment amount from the selected payment method(s).
-- Orders: distinct orders that used the selected payment method(s).
-- AOV: selected GMV divided by distinct selected orders.
+- Payment-method filters select paid delivered orders that used at least one
+  selected method; all payment-method rows for those selected orders are retained.
+- GMV: full order-level positive payment amount for the selected orders.
+- Paid Delivered Orders: distinct selected order_id values.
+- AOV: GMV divided by Paid Delivered Orders.
 - New users: users whose exact first paid purchase is present in the
-  filtered result.
-- Active users: distinct users with at least one filtered paid order.
+  filtered order cohort.
+- Active users: distinct users with at least one selected paid delivered order.
 """
 
 from __future__ import annotations
@@ -103,6 +105,7 @@ REQUIRED_COLUMNS = {
     "payment_type",
     "payment_gmv",
     "primary_payment_type",
+    "is_mixed_payment",
     "first_paid_purchase_timestamp",
 }
 
@@ -143,7 +146,7 @@ GROWTH_METRIC_CONFIG = {
         "yoy_column": "gmv_yoy",
         "base_column": "gmv",
     },
-    "Orders": {
+    "Paid Delivered Orders": {
         "mom_column": "order_count_mom",
         "yoy_column": "order_count_yoy",
         "base_column": "order_count",
@@ -850,9 +853,16 @@ def apply_filters(
         ]
 
     if selected_payments:
-        filtered = filtered.loc[
+        matching_order_ids = filtered.loc[
             filtered["payment_type"].isin(
                 selected_payments
+            ),
+            "order_id",
+        ].unique()
+
+        filtered = filtered.loc[
+            filtered["order_id"].isin(
+                matching_order_ids
             )
         ]
 
@@ -870,16 +880,40 @@ def apply_filters(
 # KPI calculation
 # ---------------------------------------------------------------------------
 
+def build_order_level_view(
+    filtered: pd.DataFrame,
+) -> pd.DataFrame:
+    """Return one row per selected paid delivered order."""
+    return (
+        filtered.sort_values(
+            [
+                "order_purchase_timestamp",
+                "order_id",
+                "payment_type",
+            ]
+        )
+        .drop_duplicates(
+            subset=["order_id"],
+            keep="first",
+        )
+        .copy()
+    )
+
+
 def calculate_kpis(
     filtered: pd.DataFrame,
 ) -> dict[str, float | int]:
-    """Calculate the five core KPIs from the filtered dataset."""
+    """Calculate the five paid-delivered KPIs from the filtered order cohort."""
+    order_level = build_order_level_view(
+        filtered
+    )
+
     gmv = float(
-        filtered["payment_gmv"].sum()
+        order_level["order_payment_amount"].sum()
     )
 
     order_count = int(
-        filtered["order_id"].nunique()
+        order_level["order_id"].nunique()
     )
 
     average_order_value = (
@@ -889,12 +923,12 @@ def calculate_kpis(
     )
 
     active_users = int(
-        filtered["customer_unique_id"].nunique()
+        order_level["customer_unique_id"].nunique()
     )
 
-    exact_first_purchase_rows = filtered.loc[
-        filtered["order_purchase_timestamp"]
-        == filtered["first_paid_purchase_timestamp"]
+    exact_first_purchase_rows = order_level.loc[
+        order_level["order_purchase_timestamp"]
+        == order_level["first_paid_purchase_timestamp"]
     ]
 
     new_users = int(
@@ -926,7 +960,7 @@ def render_kpi_cards(
     )
 
     columns[1].metric(
-        "Orders",
+        "Paid Delivered Orders",
         format_integer(
             int(kpis["order_count"])
         ),
@@ -962,6 +996,7 @@ def render_kpi_cards(
 
 def build_monthly_trends(
     filtered: pd.DataFrame,
+    source_data: pd.DataFrame,
     start_date: date,
     end_date: date,
 ) -> pd.DataFrame:
@@ -979,30 +1014,38 @@ def build_monthly_trends(
         }
     )
 
-    if filtered.empty:
-        complete_months["gmv"] = 0.0
-        complete_months["order_count"] = 0
-        complete_months["average_order_value"] = pd.NA
-        complete_months["new_users"] = 0
-        complete_months["active_users"] = 0
-        return complete_months
+    source_months = set(
+        source_data[
+            "purchase_month_start"
+        ].dropna()
+    )
+
+    complete_months[
+        "source_month_observed"
+    ] = complete_months["month"].isin(
+        source_months
+    )
+
+    order_level = build_order_level_view(
+        filtered
+    )
 
     monthly_gmv = (
-        filtered.groupby(
+        order_level.groupby(
             "purchase_month_start",
             as_index=False,
-        )["payment_gmv"]
+        )["order_payment_amount"]
         .sum()
         .rename(
             columns={
                 "purchase_month_start": "month",
-                "payment_gmv": "gmv",
+                "order_payment_amount": "gmv",
             }
         )
     )
 
     monthly_orders = (
-        filtered.groupby(
+        order_level.groupby(
             "purchase_month_start",
             as_index=False,
         )["order_id"]
@@ -1016,7 +1059,7 @@ def build_monthly_trends(
     )
 
     monthly_active_users = (
-        filtered.groupby(
+        order_level.groupby(
             "purchase_month_start",
             as_index=False,
         )["customer_unique_id"]
@@ -1029,9 +1072,9 @@ def build_monthly_trends(
         )
     )
 
-    first_purchase_rows = filtered.loc[
-        filtered["order_purchase_timestamp"]
-        == filtered["first_paid_purchase_timestamp"]
+    first_purchase_rows = order_level.loc[
+        order_level["order_purchase_timestamp"]
+        == order_level["first_paid_purchase_timestamp"]
     ].copy()
 
     monthly_new_users = (
@@ -1079,32 +1122,57 @@ def build_monthly_trends(
         "active_users",
     ]
 
-    trends[fill_zero_columns] = (
-        trends[fill_zero_columns]
-        .fillna(0)
-    )
+    observed_mask = trends[
+        "source_month_observed"
+    ]
+
+    for column in fill_zero_columns:
+        trends.loc[
+            observed_mask
+            & trends[column].isna(),
+            column,
+        ] = 0
+
+        trends.loc[
+            ~observed_mask,
+            column,
+        ] = pd.NA
 
     trends["order_count"] = (
-        trends["order_count"]
-        .astype(int)
+        pd.to_numeric(
+            trends["order_count"],
+            errors="coerce",
+        )
+        .astype("Int64")
     )
 
     trends["new_users"] = (
-        trends["new_users"]
-        .astype(int)
+        pd.to_numeric(
+            trends["new_users"],
+            errors="coerce",
+        )
+        .astype("Int64")
     )
 
     trends["active_users"] = (
-        trends["active_users"]
-        .astype(int)
+        pd.to_numeric(
+            trends["active_users"],
+            errors="coerce",
+        )
+        .astype("Int64")
     )
 
     trends["average_order_value"] = (
         trends["gmv"]
-        / trends["order_count"].replace(0, pd.NA)
+        / trends["order_count"].replace(
+            0,
+            pd.NA,
+        )
     )
 
-    return trends
+    return trends.drop(
+        columns=["source_month_observed"]
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -1179,9 +1247,10 @@ def render_monthly_trends(
     st.subheader("Monthly KPI Trends")
 
     st.caption(
-        "Missing calendar months are retained on the time axis. "
-        "Months with no matching orders display zero; AOV remains blank "
-        "when the monthly order count is zero."
+        "Calendar months absent from the paid-delivered source are retained "
+        "as gaps (NULL), not filled with zero. In source-observed months, "
+        "a filtered cohort with no matching orders displays zero; AOV remains "
+        "blank when the monthly paid-order count is zero."
     )
 
     start_timestamp = pd.Timestamp(start_date)
@@ -1203,7 +1272,7 @@ def render_monthly_trends(
     tabs = st.tabs(
         [
             "GMV",
-            "Orders",
+            "Paid Delivered Orders",
             "Average Order Value",
             "New Users",
             "Active Users",
@@ -1227,8 +1296,8 @@ def render_monthly_trends(
             create_trend_chart(
                 trends,
                 metric="order_count",
-                title="Monthly Order Trend",
-                y_title="Distinct orders",
+                title="Monthly Paid Delivered Order Trend",
+                y_title="Paid delivered orders",
                 tooltip_format=",d",
             ),
             use_container_width=True,
@@ -3335,48 +3404,116 @@ def render_holiday_analysis(
 def build_payment_structure(
     filtered: pd.DataFrame,
 ) -> pd.DataFrame:
-    """Calculate payment-method GMV, orders, AOV, and shares."""
-    payment = (
+    """Reproduce the formal payment attribution rules for current filters."""
+    split_payment = (
         filtered.groupby(
             "payment_type",
             as_index=False,
         )
         .agg(
-            gmv=(
+            split_gmv=(
                 "payment_gmv",
                 "sum",
-            ),
-            order_count=(
-                "order_id",
-                "nunique",
             ),
         )
     )
 
-    total_gmv = float(
-        payment["gmv"].sum()
+    order_level = build_order_level_view(
+        filtered
     )
 
-    total_orders = int(
-        filtered["order_id"].nunique()
+    primary_payment = (
+        order_level.groupby(
+            "primary_payment_type",
+            as_index=False,
+        )
+        .agg(
+            attributed_order_gmv=(
+                "order_payment_amount",
+                "sum",
+            ),
+            primary_order_count=(
+                "order_id",
+                "nunique",
+            ),
+            mixed_payment_orders=(
+                "is_mixed_payment",
+                "sum",
+            ),
+        )
+        .rename(
+            columns={
+                "primary_payment_type": "payment_type",
+            }
+        )
+    )
+
+    payment = split_payment.merge(
+        primary_payment,
+        on="payment_type",
+        how="outer",
+    )
+
+    numeric_columns = [
+        "split_gmv",
+        "attributed_order_gmv",
+        "primary_order_count",
+        "mixed_payment_orders",
+    ]
+
+    payment[numeric_columns] = (
+        payment[numeric_columns]
+        .fillna(0)
+    )
+
+    payment["primary_order_count"] = (
+        payment["primary_order_count"]
+        .astype(int)
+    )
+
+    payment["mixed_payment_orders"] = (
+        payment["mixed_payment_orders"]
+        .astype(int)
+    )
+
+    total_gmv = float(
+        order_level[
+            "order_payment_amount"
+        ].sum()
+    )
+
+    total_paid_orders = int(
+        order_level[
+            "order_id"
+        ].nunique()
     )
 
     payment["average_order_value"] = (
-        payment["gmv"]
-        / payment["order_count"].replace(0, pd.NA)
+        payment["attributed_order_gmv"]
+        / payment[
+            "primary_order_count"
+        ].replace(0, pd.NA)
     )
 
     payment["gmv_share"] = (
-        payment["gmv"] / total_gmv
+        payment["split_gmv"] / total_gmv
         if total_gmv > 0
         else 0.0
     )
 
     payment["order_share"] = (
-        payment["order_count"] / total_orders
-        if total_orders > 0
+        payment["primary_order_count"]
+        / total_paid_orders
+        if total_paid_orders > 0
         else 0.0
     )
+
+    payment["mixed_payment_order_share"] = (
+        payment["mixed_payment_orders"]
+        / payment[
+            "primary_order_count"
+        ].replace(0, pd.NA)
+    ).fillna(0.0)
 
     payment["gmv_share_pct"] = (
         payment["gmv_share"] * 100
@@ -3387,8 +3524,14 @@ def build_payment_structure(
     )
 
     return payment.sort_values(
-        "gmv",
-        ascending=False,
+        [
+            "split_gmv",
+            "payment_type",
+        ],
+        ascending=[
+            False,
+            True,
+        ],
     ).reset_index(drop=True)
 
 
@@ -3561,7 +3704,7 @@ def build_state_structure(
 def create_payment_gmv_chart(
     payment: pd.DataFrame,
 ) -> alt.Chart:
-    """Create the payment-method GMV share chart."""
+    """Create the payment-method split-GMV share chart."""
     chart_data = payment.copy()
 
     return (
@@ -3583,8 +3726,8 @@ def create_payment_gmv_chart(
                     title="Payment method",
                 ),
                 alt.Tooltip(
-                    "gmv:Q",
-                    title="GMV (BRL)",
+                    "split_gmv:Q",
+                    title="Split GMV (BRL)",
                     format=",.2f",
                 ),
                 alt.Tooltip(
@@ -3593,13 +3736,13 @@ def create_payment_gmv_chart(
                     format=".1f",
                 ),
                 alt.Tooltip(
-                    "order_count:Q",
-                    title="Distinct orders",
+                    "primary_order_count:Q",
+                    title="Primary paid orders",
                     format=",d",
                 ),
                 alt.Tooltip(
                     "average_order_value:Q",
-                    title="Payment GMV per order",
+                    title="AOV (BRL)",
                     format=",.2f",
                 ),
             ],
@@ -3614,7 +3757,7 @@ def create_payment_gmv_chart(
 def create_payment_order_chart(
     payment: pd.DataFrame,
 ) -> alt.Chart:
-    """Create the payment-method distinct-order chart."""
+    """Create the primary-payment paid-order chart."""
     chart_data = payment.copy()
 
     return (
@@ -3622,8 +3765,8 @@ def create_payment_order_chart(
         .mark_bar()
         .encode(
             x=alt.X(
-                "order_count:Q",
-                title="Distinct orders using method",
+                "primary_order_count:Q",
+                title="Primary paid delivered orders",
             ),
             y=alt.Y(
                 "payment_type:N",
@@ -3636,24 +3779,29 @@ def create_payment_order_chart(
                     title="Payment method",
                 ),
                 alt.Tooltip(
-                    "order_count:Q",
-                    title="Distinct orders",
+                    "primary_order_count:Q",
+                    title="Primary paid orders",
                     format=",d",
                 ),
                 alt.Tooltip(
                     "order_share_pct:Q",
-                    title="Share of filtered orders",
+                    title="Primary order share",
                     format=".1f",
                 ),
                 alt.Tooltip(
-                    "gmv:Q",
-                    title="GMV (BRL)",
+                    "attributed_order_gmv:Q",
+                    title="Attributed order GMV (BRL)",
+                    format=",.2f",
+                ),
+                alt.Tooltip(
+                    "average_order_value:Q",
+                    title="AOV (BRL)",
                     format=",.2f",
                 ),
             ],
         )
         .properties(
-            title="Orders Using Each Payment Method",
+            title="Paid Orders by Primary Payment Method",
             height=320,
         )
     )
@@ -3956,10 +4104,11 @@ def render_business_structure(
             )
 
         st.caption(
-            "GMV is split using the actual amount paid with each method. "
-            "Order counts represent distinct orders that used each method. "
-            "Because mixed-payment orders can use more than one method, "
-            "payment-method order shares may sum to slightly above 100%."
+            "GMV is split by the actual amount paid with each method. "
+            "Paid-order counts use one primary payment method per order: "
+            "the method with the largest aggregated payment amount, with "
+            "payment_type ascending as the deterministic tie-breaker. "
+            "AOV uses full attributed order GMV divided by primary order count."
         )
 
         with st.expander(
@@ -3968,31 +4117,40 @@ def render_business_structure(
             payment_table = payment[
                 [
                     "payment_type",
-                    "gmv",
+                    "split_gmv",
                     "gmv_share",
-                    "order_count",
+                    "primary_order_count",
                     "order_share",
+                    "attributed_order_gmv",
                     "average_order_value",
+                    "mixed_payment_orders",
+                    "mixed_payment_order_share",
                 ]
             ].copy()
 
             payment_table.columns = [
                 "Payment Method",
-                "GMV (BRL)",
+                "Split GMV (BRL)",
                 "GMV Share",
-                "Distinct Orders",
-                "Order Share",
-                "Payment GMV per Order (BRL)",
+                "Primary Order Count",
+                "Primary Order Share",
+                "Attributed Order GMV (BRL)",
+                "Average Order Value (BRL)",
+                "Mixed-Payment Orders",
+                "Mixed-Payment Order Share",
             ]
 
             st.dataframe(
                 payment_table.style.format(
                     {
-                        "GMV (BRL)": "{:,.2f}",
+                        "Split GMV (BRL)": "{:,.2f}",
                         "GMV Share": "{:.1%}",
-                        "Distinct Orders": "{:,}",
-                        "Order Share": "{:.1%}",
-                        "Payment GMV per Order (BRL)": "{:,.2f}",
+                        "Primary Order Count": "{:,}",
+                        "Primary Order Share": "{:.1%}",
+                        "Attributed Order GMV (BRL)": "{:,.2f}",
+                        "Average Order Value (BRL)": "{:,.2f}",
+                        "Mixed-Payment Orders": "{:,}",
+                        "Mixed-Payment Order Share": "{:.1%}",
                     }
                 ),
                 use_container_width=True,
@@ -4202,12 +4360,20 @@ def build_structural_signals(
         filtered
     )
 
+    order_level = build_order_level_view(
+        filtered
+    )
+
     overall_gmv = float(
-        filtered["payment_gmv"].sum()
+        order_level[
+            "order_payment_amount"
+        ].sum()
     )
 
     overall_orders = int(
-        filtered["order_id"].nunique()
+        order_level[
+            "order_id"
+        ].nunique()
     )
 
     overall_aov = (
@@ -4241,9 +4407,9 @@ def build_structural_signals(
                 "evidence": (
                     f"{top_payment['payment_type']} contributes "
                     f"{format_percentage(float(top_payment['gmv_share']))} "
-                    "of filtered GMV and appears in "
+                    "of filtered GMV and is the primary payment method for "
                     f"{format_percentage(float(top_payment['order_share']))} "
-                    f"of filtered orders. With {len(payment)} available "
+                    f"of filtered paid delivered orders. With {len(payment)} available "
                     "payment methods, the equal-share GMV benchmark is "
                     f"{format_percentage(equal_share)}."
                 ),
@@ -4253,8 +4419,8 @@ def build_structural_signals(
                     "a large part of current GMV."
                 ),
                 "monitor": (
-                    "Leading-method GMV share, payment-method order share, "
-                    "mixed-payment order share, and method-level AOV."
+                    "Leading-method GMV share, primary-order share, "
+                    "mixed-payment order share, and primary-attribution AOV."
                 ),
                 "basis": (
                     "Ranked by the leading method's GMV share divided by "
@@ -4502,7 +4668,7 @@ def build_structural_signals(
             .sort_values(
                 [
                     "average_order_value",
-                    "gmv",
+                    "split_gmv",
                 ],
                 ascending=[False, False],
             )
@@ -4527,8 +4693,8 @@ def build_structural_signals(
                     f"{non_leading_payment['payment_type']}"
                 ),
                 "evidence": (
-                    f"{non_leading_payment['payment_type']} has payment "
-                    "GMV per order of "
+                    f"{non_leading_payment['payment_type']} has a "
+                    "primary-attribution AOV of "
                     f"{format_currency(float(non_leading_payment['average_order_value']))}, "
                     f"or {payment_aov_ratio:.1f}× the filtered overall AOV, "
                     "while contributing "
@@ -4541,8 +4707,8 @@ def build_structural_signals(
                     "not show that expanding the method would cause growth."
                 ),
                 "monitor": (
-                    "Method-level AOV, conversion, payment failure rate, "
-                    "refund rate, and customer profile."
+                    "Primary-attribution AOV, conversion, payment failure "
+                    "rate, refund rate, and customer profile."
                 ),
                 "basis": (
                     "Selected as the highest-AOV non-leading payment method."
@@ -4682,7 +4848,7 @@ def render_filter_summary(
     st.caption(
         f"Selected period: {start_date} to {end_date} · "
         f"Payment-detail rows: {len(filtered):,} · "
-        f"Distinct orders: "
+        f"Paid delivered orders: "
         f"{filtered['order_id'].nunique():,}"
     )
 
@@ -4750,6 +4916,7 @@ def main() -> None:
 
     trends = build_monthly_trends(
         filtered,
+        data,
         filters["start_date"],
         filters["end_date"],
     )
@@ -4797,9 +4964,11 @@ def main() -> None:
     st.divider()
 
     st.info(
-        "Payment-filter interpretation: GMV uses the actual amount "
-        "paid with the selected method(s); Orders counts distinct "
-        "orders that used those methods."
+        "Payment-filter interpretation: selecting a payment method defines "
+        "an order cohort containing paid delivered orders that used that "
+        "method. GMV and AOV use each selected order's full positive "
+        "order-level payment amount; payment-method structure can still split "
+        "GMV by the actual amount paid with each method."
     )
 
     st.caption(
