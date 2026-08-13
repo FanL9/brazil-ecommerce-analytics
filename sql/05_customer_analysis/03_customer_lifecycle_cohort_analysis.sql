@@ -88,59 +88,190 @@ ORDER BY c.cohort_month,c.active_month;
 -- 复购定义：在同一统计窗口内，拥有至少2笔去重有效订单的唯一用户，且只看每个用户第一次购买后的第一次复购时间（第二笔订单），若有多笔复购，则只根据第一次的复购记录来计算比例
 -- 7/30/90 日短期留存定义：
 -- 起点为用户第一笔有效订单的购买时间。
--- N日留存用户：首购后 > 0 且 <= N × 24 小时 内至少再次产生 1 笔有效订单的用户。
--- N 日留存率：N 日内再次购买用户数 / 具备完整 N 日观察窗口的首购用户数。
+-- 短期留存定义：只看第一笔订单之后的第一次复购，也就是第二笔订单。
+-- 同一用户 `customer_unique_id` 若在区间内有多笔订单，则只考虑第一笔订单与第二笔订单作为衡量短期留存率标准。
+-- 第三笔及之后的订单不参与 7/30/90 日复购判断。
+-- 复购时间按实际时间差计算，即按照 24 小时计算，而不是自然日或自然月。
+-- N 日留存用户：首购后 `> 0` 且 `<= N × 24 小时` 内至少再次产生 1 笔有效订单的用户。
+-- N 日留存率：`N 日内再次购买用户数 / 具备完整 N 日观察窗口的首购用户数`。
 -- 完整观察窗口要求首购时间不晚于观察截止日减 N 日；窗口不足用户必须排除，并同时报告纳入人数和排除人数。
+-- 指标之间的关系 7 日复购用户 ⊆ 30 日复购用户 ⊆ 90 日复购用户。
 -- 7/30/90 日留存不得与自然月 Cohort 留存混称。
 -- 输出 outputs/data/03_customer_analysis/short_term_repeat_retention.csv
 WITH t AS (
-    SELECT customer_unique_id,
-           datetime(order_purchase_timestamp) AS order_time,
-           ROW_NUMBER() OVER(PARTITION BY customer_unique_id ORDER BY datetime(order_purchase_timestamp)) AS rn
+    SELECT
+        customer_unique_id,
+        datetime(order_purchase_timestamp) AS order_time,
+        ROW_NUMBER() OVER(
+            PARTITION BY customer_unique_id
+            ORDER BY datetime(order_purchase_timestamp)
+        ) AS rn
     FROM customer_order_base
+    WHERE is_paid_order = 1
 ),
 r AS (
-    SELECT customer_unique_id,
-           MAX(CASE WHEN rn=1 THEN order_time END) AS first_time,
-           MAX(CASE WHEN rn=2 THEN order_time END) AS second_time
+    SELECT
+        customer_unique_id,
+        MAX(CASE WHEN rn = 1 THEN order_time END) AS first_time,
+        MAX(CASE WHEN rn = 2 THEN order_time END) AS second_time
     FROM t
     GROUP BY customer_unique_id
 ),
 x AS (
-    SELECT customer_unique_id,
-           first_time,
-           julianday(second_time)-julianday(first_time) AS days_to_repeat
+    SELECT
+        customer_unique_id,
+        first_time,
+        second_time,
+        (
+            julianday(second_time) - julianday(first_time)
+        ) AS days_to_repeat
     FROM r
 ),
 e AS (
-    SELECT MAX(datetime(order_purchase_timestamp)) AS end_date
-    FROM customer_order_base
+    SELECT
+        datetime('2018-07-31 23:59:59') AS end_date
 )
 SELECT
     COUNT(*) AS total_users,
-    SUM(CASE WHEN julianday(e.end_date)-julianday(first_time)>=7 THEN 1 ELSE 0 END) AS obs_7d,
-    SUM(CASE WHEN days_to_repeat<=7 THEN 1 ELSE 0 END) AS repeat_7d,
+    SUM(
+        CASE
+            WHEN julianday(e.end_date) - julianday(first_time) >= 7
+            THEN 1
+            ELSE 0
+        END
+    ) AS obs_7d,
+    SUM(
+        CASE
+            WHEN days_to_repeat > 0
+             AND days_to_repeat <= 7
+            THEN 1
+            ELSE 0
+        END
+    ) AS repeat_7d,
     ROUND(
-        CAST(SUM(CASE WHEN days_to_repeat<=7 THEN 1 ELSE 0 END) AS FLOAT)
-        / NULLIF(SUM(CASE WHEN julianday(e.end_date)-julianday(first_time)>=7 THEN 1 ELSE 0 END),0),
+        CAST(
+            SUM(
+                CASE
+                    WHEN days_to_repeat > 0
+                     AND days_to_repeat <= 7
+                    THEN 1
+                    ELSE 0
+                END
+            ) AS FLOAT
+        )
+        /
+        NULLIF(
+            SUM(
+                CASE
+                    WHEN julianday(e.end_date) - julianday(first_time) >= 7
+                    THEN 1
+                    ELSE 0
+                END
+            ),
+            0
+        ),
         4
     ) AS repeat_rate_7d,
-    SUM(CASE WHEN julianday(e.end_date)-julianday(first_time)>=30 THEN 1 ELSE 0 END) AS obs_30d,
-    SUM(CASE WHEN days_to_repeat<=30 THEN 1 ELSE 0 END) AS repeat_30d,
+    SUM(
+        CASE
+            WHEN julianday(e.end_date) - julianday(first_time) >= 30
+            THEN 1
+            ELSE 0
+        END
+    ) AS obs_30d,
+    SUM(
+        CASE
+            WHEN days_to_repeat > 0
+             AND days_to_repeat <= 30
+            THEN 1
+            ELSE 0
+        END
+    ) AS repeat_30d,
     ROUND(
-        CAST(SUM(CASE WHEN days_to_repeat<=30 THEN 1 ELSE 0 END) AS FLOAT)
-        / NULLIF(SUM(CASE WHEN julianday(e.end_date)-julianday(first_time)>=30 THEN 1 ELSE 0 END),0),
+        CAST(
+            SUM(
+                CASE
+                    WHEN days_to_repeat > 0
+                     AND days_to_repeat <= 30
+                    THEN 1
+                    ELSE 0
+                END
+            ) AS FLOAT
+        )
+        /
+        NULLIF(
+            SUM(
+                CASE
+                    WHEN julianday(e.end_date) - julianday(first_time) >= 30
+                    THEN 1
+                    ELSE 0
+                END
+            ),
+            0
+        ),
         4
     ) AS repeat_rate_30d,
-    SUM(CASE WHEN julianday(e.end_date)-julianday(first_time)>=90 THEN 1 ELSE 0 END) AS obs_90d,
-    SUM(CASE WHEN days_to_repeat<=90 THEN 1 ELSE 0 END) AS repeat_90d,
+    SUM(
+        CASE
+            WHEN julianday(e.end_date) - julianday(first_time) >= 90
+            THEN 1
+            ELSE 0
+        END
+    ) AS obs_90d,
+    SUM(
+        CASE
+            WHEN days_to_repeat > 0
+             AND days_to_repeat <= 90
+            THEN 1
+            ELSE 0
+        END
+    ) AS repeat_90d,
     ROUND(
-        CAST(SUM(CASE WHEN days_to_repeat<=90 THEN 1 ELSE 0 END) AS FLOAT)
-        / NULLIF(SUM(CASE WHEN julianday(e.end_date)-julianday(first_time)>=90 THEN 1 ELSE 0 END),0),
+        CAST(
+            SUM(
+                CASE
+                    WHEN days_to_repeat > 0
+                     AND days_to_repeat <= 90
+                    THEN 1
+                    ELSE 0
+                END
+            ) AS FLOAT
+        )
+        /
+        NULLIF(
+            SUM(
+                CASE
+                    WHEN julianday(e.end_date) - julianday(first_time) >= 90
+                    THEN 1
+                    ELSE 0
+                END
+            ),
+            0
+        ),
         4
     ) AS repeat_rate_90d
 FROM x
-CROSS JOIN e; 
+CROSS JOIN e;
+
+-- 三个时间窗口
+SELECT
+    '7d' AS window,
+    '2018-07-31 23:59:59' AS observation_end,
+    datetime('2018-07-31 23:59:59', '-7 days') AS latest_eligible_first_purchase,
+    7 AS window_days
+UNION ALL
+SELECT
+    '30d' AS window,
+    '2018-07-31 23:59:59' AS observation_end,
+    datetime('2018-07-31 23:59:59', '-30 days') AS latest_eligible_first_purchase,
+    30 AS window_days
+UNION ALL
+SELECT
+    '90d' AS window,
+    '2018-07-31 23:59:59' AS observation_end,
+    datetime('2018-07-31 23:59:59', '-90 days') AS latest_eligible_first_purchase,
+    90 AS window_days;
+
    
 --- 4. 建立生命周期阶段
    -- 首购用户；
