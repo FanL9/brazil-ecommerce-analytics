@@ -113,6 +113,49 @@ STAGE1_CATEGORY_DATA_PATH = (
 )
 
 
+
+STAGE3_DATA_DIR = (
+    PROJECT_ROOT
+    / "outputs"
+    / "data"
+    / "03_customer_analysis"
+)
+
+STAGE4_DATA_DIR = (
+    PROJECT_ROOT
+    / "outputs"
+    / "data"
+    / "06_product_analysis"
+)
+
+STAGE3_DATA_PATHS = {
+    "rfm_segment_summary": STAGE3_DATA_DIR / "rfm_segment_summary.csv",
+    "cohort_monthly_retention": STAGE3_DATA_DIR / "cohort_monthly_retention.csv",
+    "short_term_repeat_retention": STAGE3_DATA_DIR / "short_term_repeat_retention.csv",
+    "lifecycle_stage_comparison": STAGE3_DATA_DIR / "lifecycle_stage_comparison.csv",
+    "churn_comparison": STAGE3_DATA_DIR / "churn_comparison.csv",
+    "churn_related_features": STAGE3_DATA_DIR / "churn_related_features.csv",
+    "high_value_user_integrated_profile": STAGE3_DATA_DIR / "high_value_user_integrated_profile.csv",
+    "high_value_user_state_profile": STAGE3_DATA_DIR / "high_value_user_state_profile.csv",
+    "high_value_user_payment_behavior": STAGE3_DATA_DIR / "high_value_user_payment_behavior.csv",
+    "high_value_user_consumption_behavior": STAGE3_DATA_DIR / "high_value_user_consumption_behavior.csv",
+    "high_value_user_experience_profile": STAGE3_DATA_DIR / "high_value_user_experience_profile.csv",
+}
+
+STAGE4_DATA_PATHS = {
+    "category_sales_base": STAGE4_DATA_DIR / "category_sales_base.csv",
+    "category_pareto": STAGE4_DATA_DIR / "category_pareto.csv",
+    "category_monthly_growth": STAGE4_DATA_DIR / "category_monthly_growth.csv",
+    "category_and_platform_cmgr": STAGE4_DATA_DIR / "category_and_platform_cmgr.csv",
+    "category_classification": STAGE4_DATA_DIR / "category_classification.csv",
+    "category_satisfaction": STAGE4_DATA_DIR / "category_satisfaction.csv",
+    "category_negative_keywords": STAGE4_DATA_DIR / "category_negative_keywords.csv",
+    "category_association_top20": STAGE4_DATA_DIR / "category_association_top20.csv",
+    "product_association_top20": STAGE4_DATA_DIR / "product_association_top20.csv",
+}
+
+
+
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
@@ -7681,6 +7724,2223 @@ def render_stage1_dashboard() -> None:
     )
 
 
+
+# ---------------------------------------------------------------------------
+# Stage 3 / Stage 4 fixed-analysis worksheets
+# ---------------------------------------------------------------------------
+
+STAGE3_OBSERVATION_CUTOFF = "2018-07-31"
+
+RFM_SEGMENT_LABELS = {
+    "重要价值用户": "Important Value Customer",
+    "重要发展用户": "Important Development Customer",
+    "重要保持用户": "Important Retention Customer",
+    "重要挽留用户": "Important Win-back Customer",
+    "一般用户": "General Customer",
+}
+
+STAGE3_REQUIRED_COLUMNS = {
+    "rfm_segment_summary": (
+        "rfm_segment_order",
+        "rfm_segment",
+        "user_count",
+        "user_share",
+        "valid_order_count",
+        "gmv",
+        "gmv_share",
+        "spend_per_user",
+        "average_order_value",
+        "average_purchase_frequency",
+        "repeat_purchase_rate",
+        "average_recency",
+        "average_frequency",
+        "average_monetary",
+    ),
+    "cohort_monthly_retention": (
+        "cohort_month",
+        "active_month",
+        "cohort_index",
+        "initial_users",
+        "active_users",
+        "retention_rate",
+    ),
+    "short_term_repeat_retention": (
+        "total_users",
+        "obs_7d",
+        "repeat_7d",
+        "repeat_rate_7d",
+        "obs_30d",
+        "repeat_30d",
+        "repeat_rate_30d",
+        "obs_90d",
+        "repeat_90d",
+        "repeat_rate_90d",
+    ),
+    "lifecycle_stage_comparison": (
+        "lifecycle_stage",
+        "user_count",
+        "user_percentage",
+        "order_count",
+        "gmv",
+        "avg_customer_spend",
+        "avg_order_value",
+        "avg_purchase_frequency",
+        "repeat_rate",
+        "avg_lifecycle_days",
+        "avg_recency_days",
+    ),
+    "churn_comparison": (
+        "churn_status",
+        "user_count",
+        "user_share_pct",
+        "total_valid_orders",
+        "total_gmv",
+        "spend_per_user",
+        "avg_purchase_frequency",
+        "repeat_rate_pct",
+        "avg_lifecycle_days",
+        "average_order_value",
+        "avg_latest_order_amount",
+        "avg_review_score",
+        "avg_delivery_days",
+        "delay_rate_pct",
+    ),
+    "churn_related_features": (
+        "feature",
+        "feature_type",
+        "churned_value",
+        "non_churned_value",
+        "difference",
+        "association_metric",
+        "association_value",
+        "interpretation",
+        "limitation",
+    ),
+    "high_value_user_integrated_profile": (
+        "customer_unique_id",
+        "profile_state",
+        "profile_city",
+        "recency_days",
+        "frequency",
+        "monetary",
+        "rfm_segment",
+        "churn_flag",
+        "lifecycle_stage",
+        "paid_orders",
+        "payment_gmv",
+        "average_order_value",
+        "average_review_score",
+        "average_delivery_days",
+        "delay_rate",
+    ),
+    "high_value_user_state_profile": (
+        "profile_state",
+        "all_users",
+        "high_value_users",
+        "high_value_gmv",
+        "high_value_churn_users",
+        "all_user_share",
+        "high_value_user_share",
+        "high_value_penetration",
+        "high_value_gmv_share",
+        "user_share_gap",
+    ),
+    "high_value_user_payment_behavior": (
+        "group",
+        "users",
+        "orders",
+        "paid_orders",
+        "gmv",
+        "average_main_payment_installments",
+        "one_time_share_valid",
+        "installment_share_valid",
+        "mixed_payment_share",
+    ),
+    "high_value_user_consumption_behavior": (
+        "group",
+        "users",
+        "valid_orders",
+        "paid_orders",
+        "gmv",
+        "spend_per_user",
+        "average_order_value",
+        "average_purchase_frequency",
+        "repeat_rate",
+        "high_amount_threshold_brl",
+        "high_amount_order_share",
+        "high_amount_gmv_share",
+    ),
+    "high_value_user_experience_profile": (
+        "group",
+        "users",
+        "orders",
+        "review_coverage",
+        "average_review_score",
+        "low_score_order_share",
+        "positive_review_rate",
+        "average_delivery_days",
+        "delay_rate",
+    ),
+}
+
+STAGE4_REQUIRED_COLUMNS = {
+    "category_sales_base": (
+        "category_name",
+        "sales_amount",
+        "sales_share",
+        "category_order_count",
+        "item_count",
+        "avg_item_price",
+        "items_per_order",
+        "sales_rank",
+    ),
+    "category_pareto": (
+        "category_name",
+        "sales_amount",
+        "sales_share",
+        "cumulative_sales_amount",
+        "cumulative_sales_share",
+        "sales_rank",
+        "category_type",
+    ),
+    "category_monthly_growth": (
+        "purchase_month",
+        "category_name",
+        "monthly_sales_amount",
+        "sales_mom_growth",
+        "monthly_order_count",
+        "order_mom_growth",
+        "monthly_item_count",
+        "item_mom_growth",
+    ),
+    "category_and_platform_cmgr": (
+        "level",
+        "category_name",
+        "start_month",
+        "end_month",
+        "start_sales",
+        "end_sales",
+        "month_diff",
+        "category_cmgr",
+    ),
+    "category_classification": (
+        "category_name",
+        "sales_amount",
+        "category_cmgr",
+        "avg_category_cmgr",
+        "platform_cmgr",
+        "category_type",
+    ),
+    "category_satisfaction": (
+        "category_name",
+        "valid_review_orders",
+        "avg_review_score",
+        "one_star_review_orders",
+        "one_star_rate",
+        "positive_4_5_review_orders",
+        "positive_4_5_rate",
+        "negative_text_review_orders",
+        "sample_status",
+    ),
+    "category_negative_keywords": (
+        "category_name",
+        "keyword_type",
+        "keyword",
+        "frequency",
+        "one_star_rate",
+        "negative_text_review_orders",
+    ),
+    "category_association_top20": (
+        "rule_rank",
+        "category_a",
+        "category_b",
+        "antecedent_orders",
+        "consequent_orders",
+        "cooccurrence_orders",
+        "support",
+        "confidence",
+        "lift",
+    ),
+    "product_association_top20": (
+        "rule_rank",
+        "product_a",
+        "category_a",
+        "product_b",
+        "category_b",
+        "antecedent_orders",
+        "consequent_orders",
+        "cooccurrence_orders",
+        "support",
+        "confidence",
+        "lift",
+    ),
+}
+
+
+@st.cache_data(show_spinner=False)
+def load_fixed_analysis_csv(
+    data_path: str,
+    required_columns: tuple[str, ...],
+    dataset_name: str,
+) -> pd.DataFrame:
+    """Load a validated fixed-analysis CSV used by Stage 3 or Stage 4."""
+    path = Path(data_path)
+
+    if not path.exists():
+        raise FileNotFoundError(
+            f"{dataset_name} was not found:\n{path}"
+        )
+
+    data = pd.read_csv(
+        path,
+        encoding="utf-8-sig",
+    )
+
+    missing_columns = (
+        set(required_columns)
+        - set(data.columns)
+    )
+
+    if missing_columns:
+        raise ValueError(
+            f"{dataset_name} is missing required columns: "
+            + ", ".join(sorted(missing_columns))
+        )
+
+    return data
+
+
+def load_stage3_sources() -> dict[str, pd.DataFrame]:
+    """Load all fixed Stage 3 analysis outputs."""
+    return {
+        name: load_fixed_analysis_csv(
+            str(STAGE3_DATA_PATHS[name]),
+            STAGE3_REQUIRED_COLUMNS[name],
+            STAGE3_DATA_PATHS[name].name,
+        )
+        for name in STAGE3_REQUIRED_COLUMNS
+    }
+
+
+def load_stage4_sources() -> dict[str, pd.DataFrame]:
+    """Load all fixed Stage 4 analysis outputs."""
+    return {
+        name: load_fixed_analysis_csv(
+            str(STAGE4_DATA_PATHS[name]),
+            STAGE4_REQUIRED_COLUMNS[name],
+            STAGE4_DATA_PATHS[name].name,
+        )
+        for name in STAGE4_REQUIRED_COLUMNS
+    }
+
+
+def create_stage3_rfm_share_chart(
+    rfm: pd.DataFrame,
+) -> alt.Chart:
+    """Compare customer share and GMV share across RFM segments."""
+    chart_data = rfm.copy()
+    chart_data["segment"] = chart_data[
+        "rfm_segment"
+    ].map(RFM_SEGMENT_LABELS).fillna(
+        chart_data["rfm_segment"]
+    )
+
+    chart_data = chart_data.melt(
+        id_vars=[
+            "rfm_segment_order",
+            "segment",
+        ],
+        value_vars=[
+            "user_share",
+            "gmv_share",
+        ],
+        var_name="measure",
+        value_name="share",
+    )
+
+    chart_data["measure"] = chart_data[
+        "measure"
+    ].map(
+        {
+            "user_share": "Customer Share",
+            "gmv_share": "GMV Share",
+        }
+    )
+
+    return (
+        alt.Chart(chart_data)
+        .mark_bar()
+        .encode(
+            x=alt.X(
+                "segment:N",
+                title="RFM segment",
+                sort=alt.SortField(
+                    field="rfm_segment_order",
+                    order="ascending",
+                ),
+                axis=alt.Axis(labelAngle=-25),
+            ),
+            y=alt.Y(
+                "share:Q",
+                title="Share",
+                axis=alt.Axis(format=".1%"),
+            ),
+            xOffset="measure:N",
+            color=alt.Color(
+                "measure:N",
+                title="Measure",
+            ),
+            tooltip=[
+                alt.Tooltip(
+                    "segment:N",
+                    title="RFM segment",
+                ),
+                alt.Tooltip(
+                    "measure:N",
+                    title="Measure",
+                ),
+                alt.Tooltip(
+                    "share:Q",
+                    title="Share",
+                    format=".2%",
+                ),
+            ],
+        )
+        .properties(
+            title="Customer Share vs GMV Share by RFM Segment",
+            height=390,
+        )
+    )
+
+
+def create_stage3_cohort_heatmap(
+    cohort: pd.DataFrame,
+) -> alt.Chart:
+    """Render the observed monthly cohort-retention cells."""
+    chart_data = cohort.copy()
+    chart_data["cohort_sort"] = pd.to_datetime(
+        chart_data["cohort_month"],
+        format="%b-%y",
+        errors="coerce",
+    )
+
+    chart_data = chart_data.sort_values(
+        [
+            "cohort_sort",
+            "cohort_index",
+        ]
+    )
+
+    cohort_order = (
+        chart_data[
+            [
+                "cohort_month",
+                "cohort_sort",
+            ]
+        ]
+        .drop_duplicates()
+        .sort_values("cohort_sort")[
+            "cohort_month"
+        ]
+        .tolist()
+    )
+
+    return (
+        alt.Chart(chart_data)
+        .mark_rect()
+        .encode(
+            x=alt.X(
+                "cohort_index:O",
+                title="Cohort month index",
+            ),
+            y=alt.Y(
+                "cohort_month:N",
+                title="First purchase cohort",
+                sort=cohort_order,
+            ),
+            color=alt.Color(
+                "retention_rate:Q",
+                title="Retention rate",
+                scale=alt.Scale(
+                    domain=[0, 1],
+                ),
+                legend=alt.Legend(
+                    format=".0%",
+                ),
+            ),
+            tooltip=[
+                alt.Tooltip(
+                    "cohort_month:N",
+                    title="Cohort",
+                ),
+                alt.Tooltip(
+                    "active_month:N",
+                    title="Active month",
+                ),
+                alt.Tooltip(
+                    "cohort_index:O",
+                    title="Month index",
+                ),
+                alt.Tooltip(
+                    "initial_users:Q",
+                    title="Initial users",
+                    format=",d",
+                ),
+                alt.Tooltip(
+                    "active_users:Q",
+                    title="Active users",
+                    format=",d",
+                ),
+                alt.Tooltip(
+                    "retention_rate:Q",
+                    title="Retention",
+                    format=".2%",
+                ),
+            ],
+        )
+        .properties(
+            title="Monthly Cohort Retention",
+            height=520,
+        )
+    )
+
+
+def create_stage3_lifecycle_chart(
+    lifecycle: pd.DataFrame,
+) -> alt.Chart:
+    """Create lifecycle-stage customer distribution chart."""
+    chart_data = lifecycle.copy()
+    chart_data["user_pct"] = (
+        chart_data["user_percentage"] * 100
+    )
+
+    return (
+        alt.Chart(chart_data)
+        .mark_bar()
+        .encode(
+            y=alt.Y(
+                "lifecycle_stage:N",
+                title="Lifecycle stage",
+                sort="-x",
+            ),
+            x=alt.X(
+                "user_pct:Q",
+                title="Customer share (%)",
+            ),
+            tooltip=[
+                alt.Tooltip(
+                    "lifecycle_stage:N",
+                    title="Lifecycle stage",
+                ),
+                alt.Tooltip(
+                    "user_count:Q",
+                    title="Customers",
+                    format=",d",
+                ),
+                alt.Tooltip(
+                    "user_pct:Q",
+                    title="Customer share (%)",
+                    format=",.2f",
+                ),
+                alt.Tooltip(
+                    "gmv:Q",
+                    title="GMV (BRL)",
+                    format=",.2f",
+                ),
+                alt.Tooltip(
+                    "repeat_rate:Q",
+                    title="Repeat rate",
+                    format=".2%",
+                ),
+            ],
+        )
+        .properties(
+            title="Customer Lifecycle Distribution",
+            height=360,
+        )
+    )
+
+
+def create_stage3_churn_comparison_chart(
+    churn: pd.DataFrame,
+    metric: str,
+    title: str,
+    axis_title: str,
+) -> alt.Chart:
+    """Create a two-group churn comparison chart."""
+    return (
+        alt.Chart(churn)
+        .mark_bar()
+        .encode(
+            x=alt.X(
+                "churn_status:N",
+                title="Churn status",
+            ),
+            y=alt.Y(
+                f"{metric}:Q",
+                title=axis_title,
+            ),
+            tooltip=[
+                alt.Tooltip(
+                    "churn_status:N",
+                    title="Churn status",
+                ),
+                alt.Tooltip(
+                    f"{metric}:Q",
+                    title=title,
+                    format=",.2f",
+                ),
+            ],
+        )
+        .properties(
+            title=title,
+            height=360,
+        )
+    )
+
+
+def create_stage3_high_value_state_chart(
+    state_profile: pd.DataFrame,
+) -> alt.Chart:
+    """Show states where high-value customers are observed."""
+    chart_data = state_profile.loc[
+        state_profile["high_value_users"] > 0
+    ].copy()
+
+    chart_data["penetration_pct"] = (
+        chart_data[
+            "high_value_penetration"
+        ] * 100
+    )
+
+    return (
+        alt.Chart(chart_data)
+        .mark_bar()
+        .encode(
+            y=alt.Y(
+                "profile_state:N",
+                title="Customer state",
+                sort="-x",
+            ),
+            x=alt.X(
+                "penetration_pct:Q",
+                title="High-value customer penetration (%)",
+            ),
+            tooltip=[
+                alt.Tooltip(
+                    "profile_state:N",
+                    title="State",
+                ),
+                alt.Tooltip(
+                    "high_value_users:Q",
+                    title="High-value customers",
+                    format=",d",
+                ),
+                alt.Tooltip(
+                    "all_users:Q",
+                    title="All customers",
+                    format=",d",
+                ),
+                alt.Tooltip(
+                    "penetration_pct:Q",
+                    title="Penetration (%)",
+                    format=",.4f",
+                ),
+                alt.Tooltip(
+                    "high_value_gmv:Q",
+                    title="High-value GMV (BRL)",
+                    format=",.2f",
+                ),
+            ],
+        )
+        .properties(
+            title="Observed High-Value Customer Penetration by State",
+            height=300,
+        )
+    )
+
+
+def render_stage3_dashboard() -> None:
+    """Render fixed Stage 3 customer analysis outputs."""
+    st.header("Stage 3 · Customer Analysis")
+
+    st.write(
+        "Fixed-cutoff customer behavior and value analysis using the "
+        "validated Stage 3 output layer."
+    )
+
+    st.info(
+        "Stage 3 observation cutoff is fixed at 2018-07-31. "
+        "RFM, churn, short-term repeat retention, and high-value profiles "
+        "are platform-level analyses and are not redefined by the Stage 1 "
+        "or Stage 2 interactive date/category filters."
+    )
+
+    try:
+        sources = load_stage3_sources()
+    except (
+        FileNotFoundError,
+        ValueError,
+        pd.errors.ParserError,
+    ) as error:
+        st.error(str(error))
+        st.stop()
+
+    rfm = sources["rfm_segment_summary"].copy()
+    rfm = rfm.sort_values(
+        "rfm_segment_order"
+    ).reset_index(drop=True)
+
+    retention = sources[
+        "short_term_repeat_retention"
+    ].iloc[0]
+
+    consumption = sources[
+        "high_value_user_consumption_behavior"
+    ]
+    all_users_row = consumption.loc[
+        consumption["group"] == "all_users"
+    ].iloc[0]
+
+    overview_columns = st.columns(5)
+    overview_columns[0].metric(
+        "Customers",
+        format_integer(
+            int(all_users_row["users"])
+        ),
+    )
+    overview_columns[1].metric(
+        "Valid Orders",
+        format_integer(
+            int(all_users_row["valid_orders"])
+        ),
+    )
+    overview_columns[2].metric(
+        "GMV",
+        format_currency(
+            float(all_users_row["gmv"])
+        ),
+    )
+    overview_columns[3].metric(
+        "Repeat Rate",
+        format_percentage(
+            float(all_users_row["repeat_rate"])
+        ),
+    )
+    overview_columns[4].metric(
+        "Observation Cutoff",
+        STAGE3_OBSERVATION_CUTOFF,
+    )
+
+    tabs = st.tabs(
+        [
+            "Overview",
+            "RFM & Customer Value",
+            "Retention & Lifecycle",
+            "Churn Analysis",
+            "High-Value Customers",
+        ]
+    )
+
+    with tabs[0]:
+        st.subheader("Stage 3 Overview")
+
+        overview_rfm = rfm[
+            [
+                "rfm_segment_order",
+                "rfm_segment",
+                "user_count",
+                "user_share",
+                "gmv",
+                "gmv_share",
+                "repeat_purchase_rate",
+            ]
+        ].copy()
+
+        overview_rfm["Segment"] = (
+            overview_rfm[
+                "rfm_segment"
+            ].map(RFM_SEGMENT_LABELS).fillna(
+                overview_rfm["rfm_segment"]
+            )
+        )
+
+        st.altair_chart(
+            create_stage3_rfm_share_chart(
+                rfm
+            ),
+            use_container_width=True,
+        )
+
+        st.caption(
+            "RFM segmentation is descriptive and uses the fixed Stage 3 cutoff. "
+            "Customer share and GMV share come from the validated RFM summary."
+        )
+
+        short_term_columns = st.columns(3)
+        short_term_columns[0].metric(
+            "7-Day Repeat Rate",
+            format_percentage(
+                float(
+                    retention[
+                        "repeat_rate_7d"
+                    ]
+                )
+            ),
+            help=(
+                "Users with a complete 7-day observation window."
+            ),
+        )
+        short_term_columns[1].metric(
+            "30-Day Repeat Rate",
+            format_percentage(
+                float(
+                    retention[
+                        "repeat_rate_30d"
+                    ]
+                )
+            ),
+            help=(
+                "Users with a complete 30-day observation window."
+            ),
+        )
+        short_term_columns[2].metric(
+            "90-Day Repeat Rate",
+            format_percentage(
+                float(
+                    retention[
+                        "repeat_rate_90d"
+                    ]
+                )
+            ),
+            help=(
+                "Users with a complete 90-day observation window."
+            ),
+        )
+
+    with tabs[1]:
+        st.subheader("RFM & Customer Value")
+
+        st.altair_chart(
+            create_stage3_rfm_share_chart(
+                rfm
+            ),
+            use_container_width=True,
+        )
+
+        rfm_table = rfm.copy()
+        rfm_table["RFM Segment"] = (
+            rfm_table[
+                "rfm_segment"
+            ].map(RFM_SEGMENT_LABELS).fillna(
+                rfm_table["rfm_segment"]
+            )
+        )
+
+        rfm_table["Customer Share (%)"] = (
+            rfm_table["user_share"] * 100
+        )
+        rfm_table["GMV Share (%)"] = (
+            rfm_table["gmv_share"] * 100
+        )
+        rfm_table["Repeat Rate (%)"] = (
+            rfm_table["repeat_purchase_rate"] * 100
+        )
+
+        st.dataframe(
+            rfm_table[
+                [
+                    "RFM Segment",
+                    "user_count",
+                    "Customer Share (%)",
+                    "gmv",
+                    "GMV Share (%)",
+                    "spend_per_user",
+                    "average_order_value",
+                    "average_purchase_frequency",
+                    "Repeat Rate (%)",
+                    "average_recency",
+                ]
+            ].rename(
+                columns={
+                    "user_count": "Customers",
+                    "gmv": "GMV (BRL)",
+                    "spend_per_user": "Spend / Customer (BRL)",
+                    "average_order_value": "AOV (BRL)",
+                    "average_purchase_frequency": "Avg Purchase Frequency",
+                    "average_recency": "Avg Recency (days)",
+                }
+            ),
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Customer Share (%)": st.column_config.NumberColumn(
+                    format="%.2f%%"
+                ),
+                "GMV Share (%)": st.column_config.NumberColumn(
+                    format="%.2f%%"
+                ),
+                "Repeat Rate (%)": st.column_config.NumberColumn(
+                    format="%.2f%%"
+                ),
+            },
+        )
+
+        st.caption(
+            "High R/F/M means score >= 4 under the formal RFM rules. "
+            "The very small high-F population is a data characteristic, "
+            "not a dashboard threshold adjustment."
+        )
+
+    with tabs[2]:
+        st.subheader("Retention & Lifecycle")
+
+        cohort = sources[
+            "cohort_monthly_retention"
+        ].copy()
+
+        st.altair_chart(
+            create_stage3_cohort_heatmap(
+                cohort
+            ),
+            use_container_width=True,
+        )
+
+        st.caption(
+            "Only rows present in the validated cohort output are rendered. "
+            "Blank cells are left blank rather than silently filled with zero."
+        )
+
+        retention_rows = pd.DataFrame(
+            {
+                "Window": [
+                    "7 days",
+                    "30 days",
+                    "90 days",
+                ],
+                "Eligible Users": [
+                    int(retention["obs_7d"]),
+                    int(retention["obs_30d"]),
+                    int(retention["obs_90d"]),
+                ],
+                "Repeat Users": [
+                    int(retention["repeat_7d"]),
+                    int(retention["repeat_30d"]),
+                    int(retention["repeat_90d"]),
+                ],
+                "Repeat Rate (%)": [
+                    float(retention["repeat_rate_7d"]) * 100,
+                    float(retention["repeat_rate_30d"]) * 100,
+                    float(retention["repeat_rate_90d"]) * 100,
+                ],
+            }
+        )
+
+        st.dataframe(
+            retention_rows,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Repeat Rate (%)": st.column_config.NumberColumn(
+                    format="%.2f%%"
+                ),
+            },
+        )
+
+        lifecycle = sources[
+            "lifecycle_stage_comparison"
+        ].copy()
+
+        st.altair_chart(
+            create_stage3_lifecycle_chart(
+                lifecycle
+            ),
+            use_container_width=True,
+        )
+
+        st.dataframe(
+            lifecycle,
+            use_container_width=True,
+            hide_index=True,
+        )
+
+    with tabs[3]:
+        st.subheader("Churn Analysis")
+
+        churn = sources[
+            "churn_comparison"
+        ].copy()
+
+        churned = churn.loc[
+            churn["churn_status"] == "Churned"
+        ].iloc[0]
+        non_churned = churn.loc[
+            churn["churn_status"] == "Non-churned"
+        ].iloc[0]
+
+        churn_columns = st.columns(4)
+        churn_columns[0].metric(
+            "Churned Customers",
+            format_integer(
+                int(churned["user_count"])
+            ),
+            help=f"{float(churned['user_share_pct']):.2f}% of Stage 3 customers",
+        )
+        churn_columns[1].metric(
+            "Spend / Customer Gap",
+            format_currency(
+                float(
+                    churned["spend_per_user"]
+                    - non_churned["spend_per_user"]
+                )
+            ),
+            help="Churned minus non-churned",
+        )
+        churn_columns[2].metric(
+            "Delivery Time Gap",
+            f"{float(churned['avg_delivery_days'] - non_churned['avg_delivery_days']):.2f} days",
+            help="Churned minus non-churned",
+        )
+        churn_columns[3].metric(
+            "Delay Rate Gap",
+            f"{float(churned['delay_rate_pct'] - non_churned['delay_rate_pct']):.2f} pp",
+            help="Churned minus non-churned",
+        )
+
+        churn_metric_options = {
+            "Spend per Customer": (
+                "spend_per_user",
+                "Spend per Customer",
+                "BRL",
+            ),
+            "Average Purchase Frequency": (
+                "avg_purchase_frequency",
+                "Average Purchase Frequency",
+                "Orders per customer",
+            ),
+            "Average Order Value": (
+                "average_order_value",
+                "Average Order Value",
+                "BRL",
+            ),
+            "Average Review Score": (
+                "avg_review_score",
+                "Average Review Score",
+                "Score",
+            ),
+            "Average Delivery Days": (
+                "avg_delivery_days",
+                "Average Delivery Days",
+                "Days",
+            ),
+            "Delay Rate (%)": (
+                "delay_rate_pct",
+                "Delay Rate",
+                "Percent",
+            ),
+        }
+
+        selected_churn_metric = st.selectbox(
+            "Churn comparison metric",
+            options=list(
+                churn_metric_options.keys()
+            ),
+            key="stage3_churn_metric",
+        )
+
+        churn_metric, churn_title, churn_axis = (
+            churn_metric_options[
+                selected_churn_metric
+            ]
+        )
+
+        st.altair_chart(
+            create_stage3_churn_comparison_chart(
+                churn,
+                churn_metric,
+                churn_title,
+                churn_axis,
+            ),
+            use_container_width=True,
+        )
+
+        features = sources[
+            "churn_related_features"
+        ].copy()
+
+        st.dataframe(
+            features[
+                [
+                    "feature",
+                    "feature_type",
+                    "churned_value",
+                    "non_churned_value",
+                    "difference",
+                    "association_metric",
+                    "association_value",
+                    "interpretation",
+                    "limitation",
+                ]
+            ].rename(
+                columns={
+                    "feature": "Feature",
+                    "feature_type": "Type",
+                    "churned_value": "Churned",
+                    "non_churned_value": "Non-churned",
+                    "difference": "Difference",
+                    "association_metric": "Association Metric",
+                    "association_value": "Association Value",
+                    "interpretation": "Interpretation",
+                    "limitation": "Limitation",
+                }
+            ),
+            use_container_width=True,
+            hide_index=True,
+        )
+
+        st.warning(
+            "Churn results are descriptive associations under the fixed "
+            "90-day behavioral definition. They do not establish causality "
+            "or permanent customer loss."
+        )
+
+    with tabs[4]:
+        st.subheader("High-Value Customers")
+
+        high_value_detail = sources[
+            "high_value_user_integrated_profile"
+        ].copy()
+
+        high_value_count = int(
+            high_value_detail[
+                "customer_unique_id"
+            ].nunique()
+        )
+
+        hv_columns = st.columns(4)
+        hv_columns[0].metric(
+            "High-Value Customers",
+            format_integer(
+                high_value_count
+            ),
+        )
+        hv_columns[1].metric(
+            "High-Value GMV",
+            format_currency(
+                float(
+                    consumption.loc[
+                        consumption["group"]
+                        == "high_value_users",
+                        "gmv",
+                    ].iloc[0]
+                )
+            ),
+        )
+        hv_columns[2].metric(
+            "Avg Purchase Frequency",
+            f"{float(consumption.loc[consumption['group'] == 'high_value_users', 'average_purchase_frequency'].iloc[0]):.2f}",
+        )
+        hv_columns[3].metric(
+            "Repeat Rate",
+            format_percentage(
+                float(
+                    consumption.loc[
+                        consumption["group"]
+                        == "high_value_users",
+                        "repeat_rate",
+                    ].iloc[0]
+                )
+            ),
+        )
+
+        st.warning(
+            f"Only {high_value_count} customers meet the formal high-value "
+            "RFM definition in this observation window. Treat the profile "
+            "as a small-sample description rather than a stable population pattern."
+        )
+
+        st.altair_chart(
+            create_stage3_high_value_state_chart(
+                sources[
+                    "high_value_user_state_profile"
+                ]
+            ),
+            use_container_width=True,
+        )
+
+        comparison_tabs = st.tabs(
+            [
+                "Consumption",
+                "Payment",
+                "Experience",
+                "Observed Customers",
+            ]
+        )
+
+        with comparison_tabs[0]:
+            st.dataframe(
+                sources[
+                    "high_value_user_consumption_behavior"
+                ],
+                use_container_width=True,
+                hide_index=True,
+            )
+
+        with comparison_tabs[1]:
+            st.dataframe(
+                sources[
+                    "high_value_user_payment_behavior"
+                ],
+                use_container_width=True,
+                hide_index=True,
+            )
+
+        with comparison_tabs[2]:
+            st.dataframe(
+                sources[
+                    "high_value_user_experience_profile"
+                ],
+                use_container_width=True,
+                hide_index=True,
+            )
+
+        with comparison_tabs[3]:
+            detail_columns = [
+                "customer_unique_id",
+                "profile_state",
+                "profile_city",
+                "recency_days",
+                "frequency",
+                "monetary",
+                "churn_flag",
+                "lifecycle_stage",
+                "paid_orders",
+                "average_order_value",
+                "average_review_score",
+                "average_delivery_days",
+                "delay_rate",
+            ]
+
+            st.dataframe(
+                high_value_detail[
+                    detail_columns
+                ],
+                use_container_width=True,
+                hide_index=True,
+            )
+
+    st.caption(
+        "Stage 3 data source: validated CSV outputs in "
+        "outputs/data/03_customer_analysis/. "
+        "Observation cutoff: 2018-07-31."
+    )
+
+
+def create_stage4_top_sales_chart(
+    sales: pd.DataFrame,
+    top_n: int = 10,
+) -> alt.Chart:
+    """Create a Top-N category product-sales chart."""
+    chart_data = (
+        sales.sort_values(
+            "sales_amount",
+            ascending=False,
+        )
+        .head(top_n)
+        .copy()
+    )
+
+    return (
+        alt.Chart(chart_data)
+        .mark_bar()
+        .encode(
+            y=alt.Y(
+                "category_name:N",
+                title="Product category",
+                sort="-x",
+            ),
+            x=alt.X(
+                "sales_amount:Q",
+                title="Product sales (BRL)",
+            ),
+            tooltip=[
+                alt.Tooltip(
+                    "category_name:N",
+                    title="Category",
+                ),
+                alt.Tooltip(
+                    "sales_amount:Q",
+                    title="Product sales (BRL)",
+                    format=",.2f",
+                ),
+                alt.Tooltip(
+                    "sales_share:Q",
+                    title="Sales share",
+                    format=".2%",
+                ),
+                alt.Tooltip(
+                    "category_order_count:Q",
+                    title="Orders",
+                    format=",d",
+                ),
+                alt.Tooltip(
+                    "item_count:Q",
+                    title="Items",
+                    format=",d",
+                ),
+            ],
+        )
+        .properties(
+            title=f"Top {top_n} Categories by Product Sales",
+            height=430,
+        )
+    )
+
+
+def create_stage4_pareto_chart(
+    pareto: pd.DataFrame,
+) -> alt.Chart:
+    """Create product-sales bars with cumulative sales share."""
+    chart_data = pareto.sort_values(
+        "sales_rank"
+    ).copy()
+
+    bars = (
+        alt.Chart(chart_data)
+        .mark_bar()
+        .encode(
+            x=alt.X(
+                "sales_rank:O",
+                title="Category sales rank",
+            ),
+            y=alt.Y(
+                "sales_amount:Q",
+                title="Product sales (BRL)",
+            ),
+            tooltip=[
+                alt.Tooltip(
+                    "category_name:N",
+                    title="Category",
+                ),
+                alt.Tooltip(
+                    "sales_rank:O",
+                    title="Rank",
+                ),
+                alt.Tooltip(
+                    "sales_amount:Q",
+                    title="Product sales (BRL)",
+                    format=",.2f",
+                ),
+                alt.Tooltip(
+                    "cumulative_sales_share:Q",
+                    title="Cumulative share",
+                    format=".2%",
+                ),
+                alt.Tooltip(
+                    "category_type:N",
+                    title="Pareto group",
+                ),
+            ],
+        )
+    )
+
+    line = (
+        alt.Chart(chart_data)
+        .mark_line(
+            point=False,
+            strokeWidth=2,
+        )
+        .encode(
+            x=alt.X(
+                "sales_rank:O",
+                title="Category sales rank",
+            ),
+            y=alt.Y(
+                "cumulative_sales_share:Q",
+                title="Cumulative sales share",
+                axis=alt.Axis(
+                    format=".0%"
+                ),
+                scale=alt.Scale(
+                    domain=[0, 1],
+                ),
+            ),
+        )
+    )
+
+    threshold = (
+        alt.Chart(
+            pd.DataFrame(
+                {
+                    "threshold": [0.8],
+                }
+            )
+        )
+        .mark_rule(
+            strokeDash=[6, 4],
+        )
+        .encode(
+            y=alt.Y(
+                "threshold:Q",
+                axis=None,
+            )
+        )
+    )
+
+    return (
+        alt.layer(
+            bars,
+            line + threshold,
+        )
+        .resolve_scale(
+            y="independent"
+        )
+        .properties(
+            title="Category Product-Sales Pareto Analysis",
+            height=430,
+        )
+    )
+
+
+def create_stage4_growth_scatter(
+    classification: pd.DataFrame,
+    sales: pd.DataFrame,
+) -> alt.Chart:
+    """Create the category scale-growth classification scatter."""
+    chart_data = classification.merge(
+        sales[
+            [
+                "category_name",
+                "category_order_count",
+            ]
+        ],
+        on="category_name",
+        how="left",
+    ).copy()
+
+    chart_data = chart_data.loc[
+        chart_data["category_cmgr"].notna()
+    ].copy()
+
+    chart_data["category_cmgr_pct"] = (
+        chart_data["category_cmgr"] * 100
+    )
+    chart_data["platform_cmgr_pct"] = (
+        chart_data["platform_cmgr"] * 100
+    )
+
+    sales_median = float(
+        classification[
+            "sales_amount"
+        ].median()
+    )
+    platform_cmgr = float(
+        classification[
+            "platform_cmgr"
+        ].iloc[0]
+        * 100
+    )
+
+    points = (
+        alt.Chart(chart_data)
+        .mark_circle(
+            opacity=0.75,
+        )
+        .encode(
+            x=alt.X(
+                "sales_amount:Q",
+                title="Product sales (BRL)",
+                scale=alt.Scale(
+                    type="log",
+                ),
+            ),
+            y=alt.Y(
+                "category_cmgr_pct:Q",
+                title="Category CMGR (%)",
+            ),
+            size=alt.Size(
+                "category_order_count:Q",
+                title="Category orders",
+            ),
+            color=alt.Color(
+                "category_type:N",
+                title="Growth classification",
+            ),
+            tooltip=[
+                alt.Tooltip(
+                    "category_name:N",
+                    title="Category",
+                ),
+                alt.Tooltip(
+                    "sales_amount:Q",
+                    title="Product sales (BRL)",
+                    format=",.2f",
+                ),
+                alt.Tooltip(
+                    "category_cmgr_pct:Q",
+                    title="Category CMGR (%)",
+                    format=",.2f",
+                ),
+                alt.Tooltip(
+                    "category_order_count:Q",
+                    title="Orders",
+                    format=",d",
+                ),
+                alt.Tooltip(
+                    "category_type:N",
+                    title="Classification",
+                ),
+            ],
+        )
+    )
+
+    vertical = (
+        alt.Chart(
+            pd.DataFrame(
+                {
+                    "x": [sales_median],
+                }
+            )
+        )
+        .mark_rule(
+            strokeDash=[6, 4],
+        )
+        .encode(
+            x="x:Q"
+        )
+    )
+
+    horizontal = (
+        alt.Chart(
+            pd.DataFrame(
+                {
+                    "y": [platform_cmgr],
+                }
+            )
+        )
+        .mark_rule(
+            strokeDash=[6, 4],
+        )
+        .encode(
+            y="y:Q"
+        )
+    )
+
+    return (
+        alt.layer(
+            points,
+            vertical,
+            horizontal,
+        )
+        .properties(
+            title="Category Growth vs Scale",
+            height=470,
+        )
+        .interactive(
+            bind_y=False,
+        )
+    )
+
+
+def create_stage4_monthly_growth_chart(
+    growth: pd.DataFrame,
+    category_name: str,
+) -> alt.Chart:
+    """Create one formal-window category monthly sales trend."""
+    chart_data = growth.loc[
+        growth["category_name"]
+        == category_name
+    ].copy()
+
+    chart_data["month"] = pd.to_datetime(
+        chart_data["purchase_month"],
+        format="%Y-%m",
+        errors="coerce",
+    )
+    chart_data["sales_mom_pct"] = (
+        chart_data["sales_mom_growth"]
+        * 100
+    )
+
+    return (
+        alt.Chart(chart_data)
+        .mark_line(
+            point=True,
+            strokeWidth=2,
+        )
+        .encode(
+            x=alt.X(
+                "month:T",
+                title="Month",
+                axis=alt.Axis(
+                    format="%Y-%m",
+                    labelAngle=-45,
+                ),
+            ),
+            y=alt.Y(
+                "monthly_sales_amount:Q",
+                title="Monthly product sales (BRL)",
+            ),
+            tooltip=[
+                alt.Tooltip(
+                    "month:T",
+                    title="Month",
+                    format="%Y-%m",
+                ),
+                alt.Tooltip(
+                    "monthly_sales_amount:Q",
+                    title="Product sales (BRL)",
+                    format=",.2f",
+                ),
+                alt.Tooltip(
+                    "monthly_order_count:Q",
+                    title="Orders",
+                    format=",d",
+                ),
+                alt.Tooltip(
+                    "monthly_item_count:Q",
+                    title="Items",
+                    format=",d",
+                ),
+                alt.Tooltip(
+                    "sales_mom_pct:Q",
+                    title="Sales MoM (%)",
+                    format=",.2f",
+                ),
+            ],
+        )
+        .properties(
+            title=f"Monthly Product Sales · {category_name}",
+            height=390,
+        )
+    )
+
+
+def create_stage4_satisfaction_chart(
+    satisfaction: pd.DataFrame,
+) -> alt.Chart:
+    """Create eligible-category satisfaction matrix."""
+    chart_data = satisfaction.loc[
+        satisfaction["sample_status"]
+        == "eligible"
+    ].copy()
+
+    chart_data["one_star_pct"] = (
+        chart_data["one_star_rate"]
+        * 100
+    )
+
+    return (
+        alt.Chart(chart_data)
+        .mark_circle(
+            opacity=0.75,
+        )
+        .encode(
+            x=alt.X(
+                "avg_review_score:Q",
+                title="Average review score",
+                scale=alt.Scale(
+                    zero=False,
+                ),
+            ),
+            y=alt.Y(
+                "one_star_pct:Q",
+                title="1-star review rate (%)",
+            ),
+            size=alt.Size(
+                "valid_review_orders:Q",
+                title="Valid review orders",
+            ),
+            tooltip=[
+                alt.Tooltip(
+                    "category_name:N",
+                    title="Category",
+                ),
+                alt.Tooltip(
+                    "valid_review_orders:Q",
+                    title="Valid review orders",
+                    format=",d",
+                ),
+                alt.Tooltip(
+                    "avg_review_score:Q",
+                    title="Average review score",
+                    format=",.2f",
+                ),
+                alt.Tooltip(
+                    "one_star_pct:Q",
+                    title="1-star rate (%)",
+                    format=",.2f",
+                ),
+                alt.Tooltip(
+                    "positive_4_5_rate:Q",
+                    title="4-5 star positive rate",
+                    format=".2%",
+                ),
+            ],
+        )
+        .properties(
+            title="Eligible Category Satisfaction Matrix",
+            height=450,
+        )
+        .interactive(
+            bind_y=False,
+        )
+    )
+
+
+def render_stage4_dashboard() -> None:
+    """Render fixed Stage 4 product/category analysis outputs."""
+    st.header("Stage 4 · Product Analysis")
+
+    st.write(
+        "Validated category sales, growth, satisfaction, and association-rule "
+        "analysis. Product sales use order_items.price and are not GMV."
+    )
+
+    st.info(
+        "Stage 4 uses delivered orders and order purchase time. "
+        "Product Sales excludes freight. Unknown categories remain in the "
+        "formal denominator. Formal growth outputs use 2017-01 through 2018-07."
+    )
+
+    try:
+        sources = load_stage4_sources()
+    except (
+        FileNotFoundError,
+        ValueError,
+        pd.errors.ParserError,
+    ) as error:
+        st.error(str(error))
+        st.stop()
+
+    sales = sources[
+        "category_sales_base"
+    ].copy()
+    pareto = sources[
+        "category_pareto"
+    ].copy()
+    classification = sources[
+        "category_classification"
+    ].copy()
+    satisfaction = sources[
+        "category_satisfaction"
+    ].copy()
+
+    total_sales = float(
+        sales["sales_amount"].sum()
+    )
+    category_count = int(
+        sales["category_name"].nunique()
+    )
+    head_count = int(
+        (
+            pareto["category_type"]
+            == "head"
+        ).sum()
+    )
+    head_sales_share = float(
+        pareto.loc[
+            pareto["category_type"]
+            == "head",
+            "sales_share",
+        ].sum()
+    )
+
+    platform_cmgr_rows = sources[
+        "category_and_platform_cmgr"
+    ].loc[
+        sources[
+            "category_and_platform_cmgr"
+        ]["level"] == "platform"
+    ]
+
+    platform_cmgr = (
+        float(
+            platform_cmgr_rows[
+                "category_cmgr"
+            ].iloc[0]
+        )
+        if not platform_cmgr_rows.empty
+        else None
+    )
+
+    stage4_columns = st.columns(5)
+    stage4_columns[0].metric(
+        "Product Sales",
+        format_currency(total_sales),
+    )
+    stage4_columns[1].metric(
+        "Categories",
+        format_integer(category_count),
+    )
+    stage4_columns[2].metric(
+        "Head Categories",
+        format_integer(head_count),
+    )
+    stage4_columns[3].metric(
+        "Head Sales Share",
+        format_percentage(
+            head_sales_share
+        ),
+    )
+    stage4_columns[4].metric(
+        "Platform CMGR",
+        (
+            format_percentage(
+                platform_cmgr
+            )
+            if platform_cmgr is not None
+            else "—"
+        ),
+    )
+
+    tabs = st.tabs(
+        [
+            "Overview",
+            "Sales & Pareto",
+            "Growth",
+            "Satisfaction",
+            "Association Rules",
+        ]
+    )
+
+    with tabs[0]:
+        st.subheader("Stage 4 Overview")
+
+        st.altair_chart(
+            create_stage4_top_sales_chart(
+                sales,
+                top_n=10,
+            ),
+            use_container_width=True,
+        )
+
+        classification_counts = (
+            classification[
+                "category_type"
+            ]
+            .value_counts()
+            .rename_axis(
+                "Category Classification"
+            )
+            .reset_index(
+                name="Categories"
+            )
+        )
+
+        st.dataframe(
+            classification_counts,
+            use_container_width=True,
+            hide_index=True,
+        )
+
+        eligible_count = int(
+            (
+                satisfaction[
+                    "sample_status"
+                ] == "eligible"
+            ).sum()
+        )
+
+        st.caption(
+            f"{eligible_count:,} of {category_count:,} categories meet the "
+            "minimum valid-review sample required for formal satisfaction ranking."
+        )
+
+    with tabs[1]:
+        st.subheader("Sales & Pareto")
+
+        st.altair_chart(
+            create_stage4_top_sales_chart(
+                sales,
+                top_n=10,
+            ),
+            use_container_width=True,
+        )
+
+        st.altair_chart(
+            create_stage4_pareto_chart(
+                pareto
+            ),
+            use_container_width=True,
+        )
+
+        pareto_columns = st.columns(3)
+        pareto_columns[0].metric(
+            "Head Categories",
+            format_integer(
+                head_count
+            ),
+        )
+        pareto_columns[1].metric(
+            "Head Category Share",
+            format_percentage(
+                head_count
+                / category_count
+                if category_count > 0
+                else 0
+            ),
+        )
+        pareto_columns[2].metric(
+            "Head Sales Share",
+            format_percentage(
+                head_sales_share
+            ),
+        )
+
+        st.caption(
+            "The head group includes categories up to and including the first "
+            "category that reaches or exceeds the 80% cumulative product-sales threshold. "
+            "The analysis does not assume a fixed 20/80 split."
+        )
+
+    with tabs[2]:
+        st.subheader("Category Growth")
+
+        st.altair_chart(
+            create_stage4_growth_scatter(
+                classification,
+                sales,
+            ),
+            use_container_width=True,
+        )
+
+        growth = sources[
+            "category_monthly_growth"
+        ].copy()
+
+        selected_growth_category = st.selectbox(
+            "Category monthly trend",
+            options=sorted(
+                growth[
+                    "category_name"
+                ].unique().tolist()
+            ),
+            index=0,
+            key="stage4_growth_category",
+        )
+
+        st.altair_chart(
+            create_stage4_monthly_growth_chart(
+                growth,
+                selected_growth_category,
+            ),
+            use_container_width=True,
+        )
+
+        st.dataframe(
+            classification[
+                [
+                    "category_name",
+                    "sales_amount",
+                    "category_cmgr",
+                    "platform_cmgr",
+                    "category_type",
+                ]
+            ].sort_values(
+                [
+                    "category_type",
+                    "sales_amount",
+                ],
+                ascending=[
+                    True,
+                    False,
+                ],
+            ),
+            use_container_width=True,
+            hide_index=True,
+        )
+
+        st.caption(
+            "Categories with a non-computable CMGR remain classified according "
+            "to the validated output (for example, Emerging Category) and are "
+            "not forced onto the numeric CMGR scatter."
+        )
+
+    with tabs[3]:
+        st.subheader("Category Satisfaction")
+
+        eligible = satisfaction.loc[
+            satisfaction[
+                "sample_status"
+            ] == "eligible"
+        ].copy()
+
+        small_sample = satisfaction.loc[
+            satisfaction[
+                "sample_status"
+            ] != "eligible"
+        ].copy()
+
+        satisfaction_columns = st.columns(3)
+        satisfaction_columns[0].metric(
+            "Eligible Categories",
+            format_integer(
+                len(eligible)
+            ),
+        )
+        satisfaction_columns[1].metric(
+            "Small-Sample Categories",
+            format_integer(
+                len(small_sample)
+            ),
+        )
+
+        if not eligible.empty:
+            highest_one_star = eligible.sort_values(
+                [
+                    "one_star_rate",
+                    "valid_review_orders",
+                ],
+                ascending=[
+                    False,
+                    False,
+                ],
+            ).iloc[0]
+
+            satisfaction_columns[2].metric(
+                "Highest Eligible 1-Star Rate",
+                format_percentage(
+                    float(
+                        highest_one_star[
+                            "one_star_rate"
+                        ]
+                    )
+                ),
+                help=str(
+                    highest_one_star[
+                        "category_name"
+                    ]
+                ),
+            )
+
+        st.altair_chart(
+            create_stage4_satisfaction_chart(
+                satisfaction
+            ),
+            use_container_width=True,
+        )
+
+        keywords = sources[
+            "category_negative_keywords"
+        ].copy()
+
+        keyword_categories = sorted(
+            set(
+                eligible.loc[
+                    eligible[
+                        "negative_text_review_orders"
+                    ] > 0,
+                    "category_name",
+                ].tolist()
+            )
+            & set(
+                keywords[
+                    "category_name"
+                ].unique().tolist()
+            )
+        )
+
+        if keyword_categories:
+            selected_keyword_category = (
+                st.selectbox(
+                    "Negative-review keyword category",
+                    options=keyword_categories,
+                    key="stage4_keyword_category",
+                )
+            )
+
+            selected_keyword_type = (
+                st.radio(
+                    "Keyword type",
+                    options=[
+                        "unigram",
+                        "bigram",
+                    ],
+                    horizontal=True,
+                    key="stage4_keyword_type",
+                )
+            )
+
+            keyword_view = (
+                keywords.loc[
+                    (
+                        keywords[
+                            "category_name"
+                        ]
+                        == selected_keyword_category
+                    )
+                    & (
+                        keywords[
+                            "keyword_type"
+                        ]
+                        == selected_keyword_type
+                    )
+                ]
+                .sort_values(
+                    [
+                        "frequency",
+                        "keyword",
+                    ],
+                    ascending=[
+                        False,
+                        True,
+                    ],
+                )
+                .head(15)
+                .copy()
+            )
+
+            if keyword_view.empty:
+                st.info(
+                    "No keyword rows match the selected category and keyword type."
+                )
+            else:
+                st.altair_chart(
+                    (
+                        alt.Chart(
+                            keyword_view
+                        )
+                        .mark_bar()
+                        .encode(
+                            y=alt.Y(
+                                "keyword:N",
+                                title="Negative-review keyword",
+                                sort="-x",
+                            ),
+                            x=alt.X(
+                                "frequency:Q",
+                                title="Frequency",
+                            ),
+                            tooltip=[
+                                alt.Tooltip(
+                                    "keyword:N",
+                                    title="Keyword",
+                                ),
+                                alt.Tooltip(
+                                    "frequency:Q",
+                                    title="Frequency",
+                                    format=",d",
+                                ),
+                                alt.Tooltip(
+                                    "one_star_rate:Q",
+                                    title="Category 1-star rate",
+                                    format=".2%",
+                                ),
+                            ],
+                        )
+                        .properties(
+                            title=(
+                                "Negative-Review Keywords · "
+                                f"{selected_keyword_category}"
+                            ),
+                            height=430,
+                        )
+                    ),
+                    use_container_width=True,
+                )
+
+        st.caption(
+            "Formal satisfaction comparison includes categories with at least "
+            "30 valid representative-review orders. Keyword frequencies summarize "
+            "complaint themes only and do not establish causal explanations."
+        )
+
+    with tabs[4]:
+        st.subheader("Association Rules")
+
+        product_rules = sources[
+            "product_association_top20"
+        ].copy()
+        category_rules = sources[
+            "category_association_top20"
+        ].copy()
+
+        association_columns = st.columns(3)
+        association_columns[0].metric(
+            "Product Rules",
+            format_integer(
+                len(product_rules)
+            ),
+        )
+        association_columns[1].metric(
+            "Category Rules",
+            format_integer(
+                len(category_rules)
+            ),
+        )
+        association_columns[2].metric(
+            "Rule Threshold",
+            "Co-occurrence ≥ 5",
+        )
+
+        st.markdown(
+            "#### Product-Level Rules"
+        )
+
+        product_table = (
+            product_rules[
+                [
+                    "rule_rank",
+                    "product_a",
+                    "category_a",
+                    "product_b",
+                    "category_b",
+                    "cooccurrence_orders",
+                    "support",
+                    "confidence",
+                    "lift",
+                ]
+            ]
+            .sort_values(
+                "rule_rank"
+            )
+        )
+
+        st.dataframe(
+            product_table,
+            use_container_width=True,
+            hide_index=True,
+        )
+
+        st.markdown(
+            "#### Category-Level Rules"
+        )
+
+        if category_rules.empty:
+            st.info(
+                "No category-level association rule meets the formal thresholds."
+            )
+        else:
+            st.dataframe(
+                category_rules.sort_values(
+                    "rule_rank"
+                ),
+                use_container_width=True,
+                hide_index=True,
+            )
+
+            if len(category_rules) < 20:
+                st.info(
+                    f"Only {len(category_rules)} category-level rule(s) meet "
+                    "the formal thresholds. Thresholds are not relaxed to fill Top 20."
+                )
+
+        st.caption(
+            "Association support uses all delivered orders as the denominator. "
+            "Rules are retained only when co-occurrence >= 5, confidence >= 0.10, "
+            "and lift > 1."
+        )
+
+    st.caption(
+        "Stage 4 data source: validated CSV outputs in "
+        "outputs/data/06_product_analysis/. "
+        "Product sales are SUM(order_items.price), exclude freight, and are not GMV."
+    )
+
+
+
+
 # ---------------------------------------------------------------------------
 # Dashboard page
 # ---------------------------------------------------------------------------
@@ -7821,7 +10081,7 @@ def render_stage2_dashboard() -> None:
 
 
 def main() -> None:
-    """Run the workbook-style Stage 1 / Stage 2 dashboard."""
+    """Run the workbook-style Stage 1 through Stage 4 dashboard."""
     st.set_page_config(
         page_title="Brazil / Olist E-commerce Analytics",
         page_icon="📊",
@@ -7837,6 +10097,8 @@ def main() -> None:
         options=[
             "Stage 1 · Core Metrics",
             "Stage 2 · Business Analysis",
+            "Stage 3 · Customer Analysis",
+            "Stage 4 · Product Analysis",
         ],
         horizontal=True,
         label_visibility="collapsed",
@@ -7845,15 +10107,20 @@ def main() -> None:
 
     st.caption(
         "Workbook view: Stage 1 contains the formal core-metric system; "
-        "Stage 2 contains the existing business-analysis dashboard."
+        "Stage 2 contains business analysis; Stage 3 contains fixed-cutoff "
+        "customer analysis; Stage 4 contains product/category analysis."
     )
 
     st.divider()
 
     if worksheet == "Stage 1 · Core Metrics":
         render_stage1_dashboard()
-    else:
+    elif worksheet == "Stage 2 · Business Analysis":
         render_stage2_dashboard()
+    elif worksheet == "Stage 3 · Customer Analysis":
+        render_stage3_dashboard()
+    else:
+        render_stage4_dashboard()
 
 
 if __name__ == "__main__":
