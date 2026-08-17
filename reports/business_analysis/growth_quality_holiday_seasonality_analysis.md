@@ -56,19 +56,20 @@
 
 ## 4. 排除数据覆盖不完整导致的伪异常
 - 排除标准：
-   1. 月份订单数 `order_count` < 1000
-   2. GMV 环比增长率 > 5 或者 < ‑5，标记为极端增长波动
+- order_count_too_low：order_count < Q1 - 1.5 × IQR
+- extreme_increase：GMV MoM > Q3 + 1.5 × IQR
+- extreme_decrease：GMV MoM < Q1 - 1.5 × IQR
   
 - 结果：
 
-| month   | gmv_mom_change | monthly_order_count | diagnosis |
-| ------- | -------------- | ------------------- | --------- |
-| 2016-10 | null           | 265                 | order_count_too_low |
-| 2016-12 | -0.9996        | 1                   | order_count_too_low |
-| 2017-01 | 6499.7987      | 750                 | order_count_too_low, extreme_increase |
+| month   | gmv_mom_change | monthly_order_count | diagnosis         |
+| ------- | -------------- | ------------------- | ----------------- |
+| 2016‑12 | -0.9996        | 1                   | extreme_decrease  |
+| 2017‑01 | 6499.7987      | 750                 | extreme_increase  |
+| 2017‑02 | 1.12771        | 1653                | extreme_increase  |
 
 ## 5. 判断增长是否稳定、是否具有持续性
-- 排除月份`2016-10`，`2016-12`，`2017-01`；`2016-09` 因仅有无正支付 `delivered` 订单，已不进入支付型月度公共层
+- 排除月份`2016-12`，`2017-01`，`2017-02`；`2016-09` 因仅有无正支付 `delivered` 订单，已不进入支付型月度公共层；`2016-10`由于数据缺失排除
 - 计算GMV环比增长率 std = 0.3153 ，较为稳定
 
 ## 节假日与季节性分析:
