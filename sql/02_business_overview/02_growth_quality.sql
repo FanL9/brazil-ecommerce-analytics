@@ -312,46 +312,99 @@ ORDER BY month;
 
 -- 4. Detecting anomalies of GMV growth rate 
 -- order_count_too_low: Months with order_count < 1,000 
--- growth_rate_too_high / growth_rate_too_low: Months with GMV MoM growth rate > 5 or < -5 
-SELECT
-    month,
-    gmv,
-    order_count,
-    ROUND(
-        (gmv-LAG(gmv) OVER(ORDER BY month))*1.0
-        /LAG(gmv) OVER(ORDER BY month),
-        4
-    ) AS gmv_mom_growth_rate
-FROM monthly_kpi
+-- growth_rate_too_high / growth_rate_too_low: Months with GMV MoM growth rate > 5 or < -5 are flagged as extreme growth fluctuations.
+WITH g AS (
+    SELECT
+        month,
+        ROUND(
+            (gmv - LAG(gmv) OVER (ORDER BY month)) * 1.0
+            / LAG(gmv) OVER (ORDER BY month),
+            4
+        ) AS gmv_mom_change,
+        order_count AS monthly_order_count
+    FROM monthly_kpi
+),
+order_ranked AS (
+    SELECT
+        monthly_order_count,
+        ROW_NUMBER() OVER (ORDER BY monthly_order_count) AS rn,
+        COUNT(*) OVER () AS total_n
+    FROM g
+),
+order_q AS (
+    SELECT
+        (
+            SELECT monthly_order_count
+            FROM order_ranked
+            WHERE rn = CAST((total_n + 3) / 4 AS INTEGER)
+            LIMIT 1
+        ) AS order_q1,
+        (
+            SELECT monthly_order_count
+            FROM order_ranked
+            WHERE rn = CAST((3 * total_n + 3) / 4 AS INTEGER)
+            LIMIT 1
+        ) AS order_q3
+    FROM order_ranked
+    LIMIT 1
+),
+growth_ranked AS (
+    SELECT
+        gmv_mom_change,
+        ROW_NUMBER() OVER (ORDER BY gmv_mom_change) AS rn,
+        COUNT(*) OVER () AS total_n
+    FROM g
+    WHERE gmv_mom_change IS NOT NULL
+),
+growth_q AS (
+    SELECT
+        (
+            SELECT gmv_mom_change
+            FROM growth_ranked
+            WHERE rn = CAST((total_n + 3) / 4 AS INTEGER)
+            LIMIT 1
+        ) AS growth_q1,
+        (
+            SELECT gmv_mom_change
+            FROM growth_ranked
+            WHERE rn = CAST((3 * total_n + 3) / 4 AS INTEGER)
+            LIMIT 1
+        ) AS growth_q3
+    FROM growth_ranked
+    LIMIT 1
+),
+thresholds AS (
+    SELECT
+        order_q1 - 1.5 * (order_q3 - order_q1) AS order_lower_bound,
+        growth_q1 - 1.5 * (growth_q3 - growth_q1) AS growth_lower_bound,
+        growth_q3 + 1.5 * (growth_q3 - growth_q1) AS growth_upper_bound
+    FROM order_q
+    CROSS JOIN growth_q
 )
 SELECT
-    month,
-    gmv_mom_growth_rate,
-    order_count,
+    g.month,
+    g.gmv_mom_change,
+    g.monthly_order_count,
     CASE
-        WHEN order_count<1000 
-         AND gmv_mom_growth_rate>5
-        THEN 'order_count_too_low, growth_rate_too_high'
-        WHEN order_count<1000
-         AND gmv_mom_growth_rate<-5
-        THEN 'order_count_too_low, growth_rate_too_low'
-        WHEN order_count<1000
-        THEN 'order_count_too_low'
-        WHEN gmv_mom_growth_rate>5
-        THEN 'growth_rate_too_high'
-        WHEN gmv_mom_growth_rate<-5
-        THEN 'growth_rate_too_low'
-        ELSE 'none'
-    END AS label,
-    CASE
-        WHEN order_count<1000
-          OR gmv_mom_growth_rate>5
-          OR gmv_mom_growth_rate<-5
-        THEN 'abnormal'
-        ELSE 'normal'
-    END AS status
+        WHEN g.monthly_order_count < t.order_lower_bound
+             AND g.gmv_mom_change > t.growth_upper_bound
+            THEN 'order_count_too_low, extreme_increase'
+        WHEN g.monthly_order_count < t.order_lower_bound
+             AND g.gmv_mom_change < t.growth_lower_bound
+            THEN 'order_count_too_low, extreme_decrease'
+        WHEN g.monthly_order_count < t.order_lower_bound
+            THEN 'order_count_too_low'
+        WHEN g.gmv_mom_change > t.growth_upper_bound
+            THEN 'extreme_increase'
+        WHEN g.gmv_mom_change < t.growth_lower_bound
+            THEN 'extreme_decrease'
+    END AS diagnosis
 FROM g
-ORDER BY month;
+CROSS JOIN thresholds t
+WHERE g.monthly_order_count < t.order_lower_bound
+   OR g.gmv_mom_change > t.growth_upper_bound
+   OR g.gmv_mom_change < t.growth_lower_bound
+ORDER BY g.month;
 
 -- 5. Assessment of Growth Stability and Sustainability of GMV
 -- after deleting anomalies
