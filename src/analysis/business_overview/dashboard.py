@@ -160,6 +160,22 @@ STAGE4_DATA_PATHS = {
 # Constants
 # ---------------------------------------------------------------------------
 
+# Keep stable internal IDs separate from user-facing titles.
+# This prevents renamed Stage titles from becoming widget state / routing values.
+STAGE_TITLES = {
+    "stage1": "Stage 1 · Core Metrics",
+    "stage2": "Stage 2 · Business Analysis",
+    "stage3": "Stage 3 · Customer Analysis",
+    "stage4": "Stage 4 · Product Analysis",
+}
+
+STAGE_ORDER = [
+    "stage1",
+    "stage2",
+    "stage3",
+    "stage4",
+]
+
 REQUIRED_COLUMNS = {
     "order_id",
     "customer_unique_id",
@@ -7146,7 +7162,7 @@ def create_stage1_category_share_chart(
 
 def render_stage1_dashboard() -> None:
     """Render the complete Stage 1 core-metrics workbook M01-M18."""
-    st.header("Stage 1 · Core Metrics")
+    st.header(STAGE_TITLES["stage1"])
 
     st.write(
         "Interactive view of the formal Stage 1 18-metric system. "
@@ -8362,7 +8378,7 @@ def create_stage3_high_value_state_chart(
 
 def render_stage3_dashboard() -> None:
     """Render fixed Stage 3 customer analysis outputs."""
-    st.header("Stage 3 · Customer Analysis")
+    st.header(STAGE_TITLES["stage3"])
 
     st.write(
         "Fixed-cutoff customer behavior and value analysis using the "
@@ -9390,7 +9406,7 @@ def create_stage4_satisfaction_chart(
 
 def render_stage4_dashboard() -> None:
     """Render fixed Stage 4 product/category analysis outputs."""
-    st.header("Stage 4 · Product Analysis")
+    st.header(STAGE_TITLES["stage4"])
 
     st.write(
         "Validated category sales, growth, satisfaction, and association-rule "
@@ -9963,7 +9979,7 @@ def render_filter_summary(
 
 def render_stage2_dashboard() -> None:
     """Render the existing Stage 2 business-analysis dashboard."""
-    st.header("Stage 2 · Business Analysis")
+    st.header(STAGE_TITLES["stage2"])
 
     st.write(
         "Use the global filters to review paid delivered order KPIs "
@@ -10092,17 +10108,14 @@ def main() -> None:
         "Brazil / Olist E-commerce Analytics"
     )
 
-    worksheet = st.radio(
+    stage_id = st.radio(
         "Worksheet",
-        options=[
-            "Stage 1 · Core Metrics",
-            "Stage 2 · Business Analysis",
-            "Stage 3 · Customer Analysis",
-            "Stage 4 · Product Analysis",
-        ],
+        options=STAGE_ORDER,
+        format_func=lambda value: STAGE_TITLES[value],
         horizontal=True,
         label_visibility="collapsed",
-        key="dashboard_worksheet",
+        # New key intentionally avoids inheriting old title-string widget state.
+        key="dashboard_stage_id_v2",
     )
 
     st.caption(
@@ -10113,11 +10126,11 @@ def main() -> None:
 
     st.divider()
 
-    if worksheet == "Stage 1 · Core Metrics":
+    if stage_id == "stage1":
         render_stage1_dashboard()
-    elif worksheet == "Stage 2 · Business Analysis":
+    elif stage_id == "stage2":
         render_stage2_dashboard()
-    elif worksheet == "Stage 3 · Customer Analysis":
+    elif stage_id == "stage3":
         render_stage3_dashboard()
     else:
         render_stage4_dashboard()
